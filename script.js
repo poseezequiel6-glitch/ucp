@@ -956,7 +956,8 @@ clearLibBtn.addEventListener('click',async()=>{
 });
 
 document.addEventListener('keydown',e=>{
-  if(document.activeElement===searchInput||document.activeElement===modalSearchInput||document.activeElement===playlistViewName)return;
+  const active = document.activeElement;
+  if(active===searchInput||active===modalSearchInput||active===playlistViewName||active?.id==='mobSearchInput'||active?.id==='urlDownloadInput')return;
   switch(e.code){
     case'Space':e.preventDefault();btnPlay.click();break;
     case'ArrowRight':e.preventDefault();playNext();break;
@@ -1803,7 +1804,7 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
   checkEmpty();
 }
 
-async function fetchYouTube(q) {
+async function fetchYouTubeItems(q) {
   const mirrors = [
     'https://invidious.f5.si',
     'https://invidious.flokinet.to'
@@ -1841,8 +1842,13 @@ async function fetchYouTube(q) {
     }
   }
 
+  return items || [];
+}
+
+async function fetchYouTube(q) {
+  const items = await fetchYouTubeItems(q);
   if (q !== lastQuery) return;
-  renderYouTubeResults(items ? items.slice(0, 10) : []);
+  renderYouTubeResults(items.slice(0, 10));
 }
 
 function renderYouTubeResults(items) {
@@ -3146,7 +3152,7 @@ function startUrlDownload() {
 
     // YouTube + iTunes async
     const [ytItems, itunesItems] = await Promise.allSettled([
-      fetchYouTube(q),
+      fetchYouTubeItems(q),
       fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=5&lang=es_es`, { signal: AbortSignal.timeout(5000) })
         .then(r => r.json()).then(d => d.results || []).catch(() => [])
     ]);
@@ -3198,17 +3204,20 @@ function startUrlDownload() {
         });
       } else if (entry.type === 'yt') {
         const item = entry.item;
-        const thumb = item.thumbnailUrl || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
-        li.innerHTML = `<img src="${thumb}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.title)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(item.author || '')}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(229,9,20,.15);color:#ff4444;border:1px solid rgba(229,9,20,.3)">YT</span>`;
+        const thumb = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+        // Misma lógica de título/artista que el desktop
+        let ytTitle = item.title || '';
+        let ytArtist = item.author || 'YouTube';
+        if (ytTitle.includes(' - ')) {
+          const parts = ytTitle.split(' - ');
+          ytArtist = parts[0].trim();
+          ytTitle = parts.slice(1).join(' - ').replace(/\(Official.*?\)|\[Official.*?\]|\(Video.*?\)|\[Video.*?\]|\(Lyric.*?\)|\[Lyric.*?\]/gi, '').trim();
+        }
+        const ytTrack = { title: ytTitle, artist: ytArtist, album: 'YouTube', cover: thumb, ytId: item.videoId, duration: item.lengthSeconds || 0, isOnline: true };
+        li.innerHTML = `<img src="${thumb}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ytTitle)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(ytArtist)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(229,9,20,.15);color:#ff4444;border:1px solid rgba(229,9,20,.3)">YT</span>`;
         li.addEventListener('click', () => {
           closeSearchOverlay();
-          playAnyTrack({
-            title: item.title,
-            artist: item.author || '',
-            cover: thumb,
-            ytId: item.videoId,
-            duration: item.duration || 0
-          });
+          playAnyTrack(ytTrack);
         });
       } else if (entry.type === 'itunes') {
         const r = entry.r;
