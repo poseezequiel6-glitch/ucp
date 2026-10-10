@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0d0d0d" />
   <title>WAVE · Player</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -584,6 +588,64 @@
     </div>
   </div>
 
+
+  <!-- Mobile: Library Drawer (slide up from bottom) -->
+  <div class="mob-drawer-overlay" id="mobDrawerOverlay"></div>
+  <div class="mob-drawer" id="mobDrawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title" id="mobDrawerTitle">Biblioteca</span>
+      <button class="mob-drawer-close" id="mobDrawerClose">✕</button>
+    </div>
+    <div class="mob-drawer-content" id="mobDrawerContent">
+      <!-- contenido inyectado por JS: biblioteca o playlists -->
+    </div>
+  </div>
+
+  <!-- Mobile: Search Overlay -->
+  <div class="mob-search-overlay" id="mobSearchOverlay">
+    <div class="mob-search-header">
+      <div class="mob-search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="mobSearchInput" placeholder="Buscar canciones, artistas..." autocomplete="off" />
+        <div class="search-spinner" id="mobSearchSpinner" style="display:none"></div>
+      </div>
+      <button class="mob-search-cancel" id="mobSearchCancel">Cancelar</button>
+    </div>
+    <div class="mob-search-results" id="mobSearchResults"></div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mob-bottom-nav" id="mobBottomNav">
+    <button class="mob-nav-btn" id="mobNavPlayer" title="Reproductor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/>
+      </svg>
+      <span>Inicio</span>
+    </button>
+    <button class="mob-nav-btn" id="mobNavSearch" title="Buscar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>Buscar</span>
+    </button>
+    <button class="mob-nav-btn" id="mobNavLibrary" title="Biblioteca">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <span>Biblioteca</span>
+    </button>
+    <button class="mob-nav-btn" id="mobNavPlaylists" title="Playlists">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      <span>Playlists</span>
+    </button>
+  </nav>
+
   <div class="miniplayer" id="miniplayer">
   <div class="miniplayer-cover" id="miniCover">
     <svg viewBox="0 0 42 42" fill="none"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>
@@ -615,6 +677,7 @@
     <div class="miniplayer-progress-fill" id="miniProgressFill" style="width:0%"></div>
   </div>
 </div>
+
 
   <div id="ytPlayerContainer" style="position:fixed;top:0;left:0;width:200px;height:200px;opacity:0.001;pointer-events:none;z-index:-1;">
     <div id="ytPlayerFrame"></div>

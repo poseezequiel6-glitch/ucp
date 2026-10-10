@@ -1,0 +1,8 @@
+{
+  "liveServer.settings.ignoreFiles": [
+    "../musica/**",
+    "**/*.mp3",
+    "**/*.flac",
+    "**/*.m4a"
+  ]
+}

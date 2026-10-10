@@ -2970,3 +2970,313 @@ function startUrlDownload() {
     setTimeout(() => { urlDownloadProgress.style.display = 'none'; }, 3000);
   };
 }
+
+/* ═══════════════════════════════════════════════
+   MOBILE UI — Bottom Nav · Drawer · Search Overlay
+   ═══════════════════════════════════════════════ */
+
+(function initMobile() {
+
+  function isMobile() { return window.innerWidth <= 680; }
+
+  /* ── DOM refs ── */
+  const mobBottomNav      = document.getElementById('mobBottomNav');
+  const mobNavPlayer      = document.getElementById('mobNavPlayer');
+  const mobNavSearch      = document.getElementById('mobNavSearch');
+  const mobNavLibrary     = document.getElementById('mobNavLibrary');
+  const mobNavPlaylists   = document.getElementById('mobNavPlaylists');
+  const mobDrawer         = document.getElementById('mobDrawer');
+  const mobDrawerOverlay  = document.getElementById('mobDrawerOverlay');
+  const mobDrawerClose    = document.getElementById('mobDrawerClose');
+  const mobDrawerTitle    = document.getElementById('mobDrawerTitle');
+  const mobDrawerContent  = document.getElementById('mobDrawerContent');
+  const mobSearchOverlay  = document.getElementById('mobSearchOverlay');
+  const mobSearchInput    = document.getElementById('mobSearchInput');
+  const mobSearchCancel   = document.getElementById('mobSearchCancel');
+  const mobSearchResults  = document.getElementById('mobSearchResults');
+  const coverArtEl        = document.getElementById('coverArt');
+
+  let activeDrawer = null; // 'library' | 'playlists' | null
+  let searchOverlayOpen = false;
+  let mobSearchDebounce = null;
+
+  /* ── Utilidades ── */
+  function setNavActive(btn) {
+    [mobNavPlayer, mobNavSearch, mobNavLibrary, mobNavPlaylists].forEach(b => b.classList.remove('is-active'));
+    if (btn) btn.classList.add('is-active');
+  }
+
+  function openDrawer(mode) {
+    activeDrawer = mode;
+    mobDrawerTitle.textContent = mode === 'library' ? 'Biblioteca' : 'Mis Playlists';
+
+    // Clonar el contenido correcto al drawer
+    mobDrawerContent.innerHTML = '';
+    if (mode === 'library') {
+      // Folder button
+      const folderClone = document.querySelector('#panelLibrary .folder-btn');
+      if (folderClone) {
+        const fb = folderClone.cloneNode(true);
+        fb.addEventListener('click', () => { pickFolder(); closeDrawer(); });
+        mobDrawerContent.appendChild(fb);
+      }
+      // Track list
+      const tl = document.getElementById('trackList');
+      if (tl) {
+        const clone = tl.cloneNode(true);
+        clone.querySelectorAll('.track-item').forEach((li, i) => {
+          li.addEventListener('click', () => {
+            loadTrack(i, true);
+            closeDrawer();
+          });
+        });
+        mobDrawerContent.appendChild(clone);
+      }
+      // Clear button
+      const clearClone = document.querySelector('#panelLibrary .clear-btn');
+      if (clearClone) {
+        const cb = clearClone.cloneNode(true);
+        cb.addEventListener('click', () => { clearLibBtn.click(); closeDrawer(); });
+        mobDrawerContent.appendChild(cb);
+      }
+    } else {
+      // Playlists panel
+      const plPanel = document.getElementById('panelPlaylists');
+      if (plPanel) {
+        const clone = plPanel.cloneNode(true);
+        // Re-wire playlist clicks
+        clone.querySelectorAll('.playlist-item').forEach((li) => {
+          const plId = li.dataset.plid;
+          li.addEventListener('click', () => {
+            if (plId) {
+              const orig = document.querySelector(`.playlist-item[data-plid="${plId}"]`);
+              if (orig) orig.click();
+            }
+            closeDrawer();
+          });
+        });
+        clone.querySelector('.new-playlist-btn')?.addEventListener('click', () => {
+          newPlaylistBtn.click(); closeDrawer();
+        });
+        mobDrawerContent.appendChild(clone);
+      }
+    }
+
+    mobDrawer.classList.add('is-open');
+    mobDrawerOverlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    activeDrawer = null;
+    mobDrawer.classList.remove('is-open');
+    mobDrawerOverlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+    setNavActive(mobNavPlayer);
+  }
+
+  function openSearchOverlay() {
+    searchOverlayOpen = true;
+    mobSearchOverlay.classList.add('is-open');
+    setNavActive(mobNavSearch);
+    setTimeout(() => mobSearchInput.focus(), 350);
+  }
+
+  function closeSearchOverlay() {
+    searchOverlayOpen = false;
+    mobSearchOverlay.classList.remove('is-open');
+    mobSearchInput.value = '';
+    mobSearchResults.innerHTML = '';
+    setNavActive(mobNavPlayer);
+  }
+
+  /* ── Bottom nav button handlers ── */
+  mobNavPlayer.addEventListener('click', () => {
+    closeDrawer();
+    closeSearchOverlay();
+    setNavActive(mobNavPlayer);
+  });
+
+  mobNavSearch.addEventListener('click', () => {
+    if (activeDrawer) closeDrawer();
+    openSearchOverlay();
+  });
+
+  mobNavLibrary.addEventListener('click', () => {
+    if (searchOverlayOpen) closeSearchOverlay();
+    if (activeDrawer === 'library') { closeDrawer(); return; }
+    openDrawer('library');
+    setNavActive(mobNavLibrary);
+  });
+
+  mobNavPlaylists.addEventListener('click', () => {
+    if (searchOverlayOpen) closeSearchOverlay();
+    if (activeDrawer === 'playlists') { closeDrawer(); return; }
+    openDrawer('playlists');
+    setNavActive(mobNavPlaylists);
+  });
+
+  mobDrawerClose.addEventListener('click', closeDrawer);
+  mobDrawerOverlay.addEventListener('click', closeDrawer);
+  mobSearchCancel.addEventListener('click', closeSearchOverlay);
+
+  /* ── Mobile search: same as desktop but renders in overlay ── */
+  mobSearchInput.addEventListener('input', () => {
+    clearTimeout(mobSearchDebounce);
+    const q = mobSearchInput.value.trim();
+    if (!q) { mobSearchResults.innerHTML = ''; return; }
+    mobSearchDebounce = setTimeout(() => doMobSearch(q), 350);
+  });
+
+  async function doMobSearch(q) {
+    mobSearchResults.innerHTML = `<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.3);font-size:.78rem">Buscando...</div>`;
+
+    const results = [];
+
+    // Local library matches
+    const localMatches = library.filter(t =>
+      t.title.toLowerCase().includes(q.toLowerCase()) ||
+      t.artist.toLowerCase().includes(q.toLowerCase())
+    ).slice(0, 5);
+
+    if (localMatches.length) {
+      results.push({ type: 'header', label: 'TU BIBLIOTECA' });
+      localMatches.forEach(t => results.push({ type: 'local', track: t }));
+    }
+
+    // YouTube + iTunes async
+    const [ytItems, itunesItems] = await Promise.allSettled([
+      fetchYouTube(q),
+      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=5&lang=es_es`, { signal: AbortSignal.timeout(5000) })
+        .then(r => r.json()).then(d => d.results || []).catch(() => [])
+    ]);
+
+    const yt = (ytItems.status === 'fulfilled' ? ytItems.value : []) || [];
+    const it = (itunesItems.status === 'fulfilled' ? itunesItems.value : []) || [];
+
+    if (yt.length) {
+      results.push({ type: 'header', label: 'YOUTUBE' });
+      yt.slice(0, 5).forEach(item => results.push({ type: 'yt', item }));
+    }
+    if (it.length) {
+      results.push({ type: 'header', label: 'ITUNES' });
+      it.slice(0, 3).forEach(r => results.push({ type: 'itunes', r }));
+    }
+
+    if (!results.length) {
+      mobSearchResults.innerHTML = `<div style="padding:30px;text-align:center;color:rgba(255,255,255,0.25);font-size:.82rem">Sin resultados para "<strong>${escapeHtml(q)}</strong>"</div>`;
+      return;
+    }
+
+    renderMobResults(results);
+  }
+
+  function renderMobResults(results) {
+    mobSearchResults.innerHTML = '';
+    results.forEach(entry => {
+      if (entry.type === 'header') {
+        const h = document.createElement('div');
+        h.className = 'search-section-header';
+        h.textContent = entry.label;
+        mobSearchResults.appendChild(h);
+        return;
+      }
+
+      const li = document.createElement('div');
+      li.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .15s;';
+      li.addEventListener('touchstart', () => li.style.background = 'rgba(255,255,255,0.06)', {passive:true});
+      li.addEventListener('touchend', () => li.style.background = '', {passive:true});
+
+      if (entry.type === 'local') {
+        const t = entry.track;
+        const cover = t.cover ? `<img src="${t.cover}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" />` : `<div style="width:46px;height:46px;border-radius:8px;background:#1e1e1e;"></div>`;
+        li.innerHTML = `${cover}<div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(t.artist)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)">LOCAL</span>`;
+        li.addEventListener('click', () => {
+          const idx = filteredLib.findIndex(x => x.id === t.id);
+          if (idx >= 0) { playContext = 'library'; loadTrack(idx, true); }
+          closeSearchOverlay();
+        });
+      } else if (entry.type === 'yt') {
+        const item = entry.item;
+        const thumb = item.thumbnailUrl || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+        li.innerHTML = `<img src="${thumb}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.title)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(item.author || '')}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(229,9,20,.15);color:#ff4444;border:1px solid rgba(229,9,20,.3)">YT</span>`;
+        li.addEventListener('click', () => {
+          closeSearchOverlay();
+          playAnyTrack({
+            title: item.title,
+            artist: item.author || '',
+            cover: thumb,
+            ytId: item.videoId,
+            duration: item.duration || 0
+          });
+        });
+      } else if (entry.type === 'itunes') {
+        const r = entry.r;
+        if (!r.previewUrl) return;
+        const cover = (r.artworkUrl60 || '').replace('60x60','80x80');
+        li.innerHTML = `<img src="${cover}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.trackName)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(r.artistName)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(252,60,68,.15);color:#fc3c44;border:1px solid rgba(252,60,68,.3)">ITUNES</span>`;
+        li.addEventListener('click', () => {
+          closeSearchOverlay();
+          playAnyTrack({
+            title: r.trackName,
+            artist: r.artistName,
+            album: r.collectionName || '',
+            cover: (r.artworkUrl60 || '').replace('60x60','300x300'),
+            previewUrl: r.previewUrl,
+            duration: Math.round((r.trackTimeMillis || 0) / 1000)
+          });
+        });
+      }
+
+      mobSearchResults.appendChild(li);
+    });
+  }
+
+  /* ── Swipe left/right on cover art: prev/next ── */
+  let swipeStartX = 0;
+  let swipeStartY = 0;
+  if (coverArtEl) {
+    coverArtEl.addEventListener('touchstart', e => {
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }, {passive: true});
+
+    coverArtEl.addEventListener('touchend', e => {
+      if (!isMobile()) return;
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+        if (dx < 0) playNext();
+        else playPrev();
+        // Visual feedback
+        coverArtEl.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+        coverArtEl.style.transform = `translateX(${dx < 0 ? -30 : 30}px)`;
+        coverArtEl.style.opacity = '0.5';
+        setTimeout(() => {
+          coverArtEl.style.transform = '';
+          coverArtEl.style.opacity = '';
+        }, 180);
+      }
+    }, {passive: true});
+  }
+
+  /* ── Update drawer content when library changes ── */
+  // Watch for library/playlist updates and refresh drawer if open
+  const origRender = window.renderTrackList;
+  if (typeof renderTrackList === 'function') {
+    const _orig = renderTrackList;
+    window._mobDrawerRefresh = () => {
+      if (activeDrawer) openDrawer(activeDrawer);
+    };
+  }
+
+  /* ── Set initial nav state ── */
+  setNavActive(mobNavPlayer);
+
+  /* ── Handle back button to close drawers ── */
+  window.addEventListener('popstate', () => {
+    if (searchOverlayOpen) closeSearchOverlay();
+    else if (activeDrawer) closeDrawer();
+  });
+
+})();

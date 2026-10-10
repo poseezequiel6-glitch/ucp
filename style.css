@@ -789,15 +789,359 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.3); box-sha
   font-family: var(--font-body);
 }
 
-@media (max-width: 700px) {
-  :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
-  .main-panel { padding: 18px 18px 14px; gap: 12px; }
-  .track-hero { flex-direction: column; align-items: flex-start; }
-  .cover-art { width: 100px; height: 100px; }
+/* ─────────────────────────────────────────────
+   MOBILE RESPONSIVE — Estilo Spotify (≤ 680px)
+   ───────────────────────────────────────────── */
+
+/* Ocultar bottom nav y elementos mobile en desktop */
+.mob-bottom-nav,
+.mob-drawer,
+.mob-drawer-overlay,
+.mob-search-overlay { display: none; }
+
+@media (max-width: 680px) {
+
+  /* ── Variables ── */
+  :root {
+    --sidebar-w: 0px;
+    --mob-nav-h: 60px;
+    --mob-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body { overflow: hidden; height: 100%; }
+
+  /* ── App shell: columna, sin sidebar lateral ── */
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ── Sidebar lateral: oculto ── */
+  .sidebar { display: none !important; }
+
+  /* ── Main panel: pantalla completa, scroll vertical ── */
+  .main-panel {
+    padding: 16px 18px 0;
+    gap: 12px;
+    overflow-y: auto;
+    /* espacio para miniplayer + bottom nav */
+    padding-bottom: calc(var(--mob-nav-h) + 58px + var(--mob-safe-bottom));
+  }
+
+  /* ── Top bar: más compacto ── */
+  .top-bar { flex-wrap: wrap; gap: 8px; }
+  .top-left { flex-wrap: wrap; gap: 6px; }
+  .sort-label { display: none; }
+  .sort-btn { font-size: 0.7rem; padding: 4px 10px; }
+
+  /* ── Track hero: centrado verticalmente, cover grande ── */
+  .track-hero {
+    flex-direction: column;
+    align-items: center !important;
+    text-align: center;
+    padding: 12px 0 8px !important;
+    gap: 14px !important;
+  }
+  .cover-art {
+    width: 200px !important;
+    height: 200px !important;
+  }
+  .track-meta {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+  }
+  .track-title {
+    font-size: 1.3rem !important;
+    text-align: center;
+  }
+  .track-artist, .track-album { text-align: center; }
+  .track-badges { justify-content: center; }
+
+  /* ── Visualizador: más alto, mejor en mobile ── */
+  .viz-wrap { height: 50px !important; }
+
+  /* ── Barra de progreso: más fácil de tocar ── */
+  .progress-wrap { padding: 4px 0 10px !important; gap: 10px; }
+  input[type="range"] { height: 20px; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; }
+  input[type="range"]::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -7px; }
+
+  /* ── Controles: targets más grandes, centrados ── */
+  .controls-wrap {
+    gap: 10px !important;
+    padding: 4px 0 !important;
+    justify-content: space-between;
+  }
+  .ctrl-ghost { width: 46px !important; height: 46px !important; }
+  .ctrl-ghost svg { width: 22px !important; height: 22px !important; }
+  .ctrl-play  { width: 62px !important; height: 62px !important; }
+  .ctrl-play svg { width: 24px !important; height: 24px !important; }
+
+  /* ── Volumen: ocultar en mobile (control de sistema) ── */
+  .volume-wrap { display: none; }
+
+  /* ── Keyboard hints: ocultar ── */
   .keyboard-hints { display: none; }
+
+  /* ── Queue section: scroll horizontal → vertical list ── */
+  .queue-section { padding-top: 10px; }
+  .queue-list {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .queue-card { width: 140px; }
+
+  /* ── Lyrics panel: altura mayor en mobile ── */
+  .lyrics-body { height: 260px; }
+  .lyric-line { font-size: 1rem; }
+  .lyric-line.is-active { font-size: 1.15rem; }
+
+  /* ── EQ panel: scroll si no entra ── */
+  .eq-bands { gap: 4px; padding: 16px 8px; }
+  .eq-band-label { font-size: 0.58rem; }
+
+  /* ── Settings panel ── */
+  .settings-section { padding: 12px 14px; }
+
+  /* ── Dropdown de búsqueda del desktop: oculto en mobile ── */
+  .search-dropdown { display: none !important; }
+
+  /* ──────────────────────────────────────────
+     BOTTOM NAVIGATION BAR (Spotify-like)
+     ────────────────────────────────────────── */
+  .mob-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 160;
+    background: rgba(13, 13, 13, 0.97);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 6px 0 calc(6px + var(--mob-safe-bottom));
+    align-items: stretch;
+    height: calc(var(--mob-nav-h) + var(--mob-safe-bottom));
+  }
+
+  .mob-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    padding: 6px 4px;
+    font-family: var(--font-body);
+    transition: color 0.15s ease;
+    min-height: 44px;
+  }
+  .mob-nav-btn svg { width: 22px; height: 22px; }
+  .mob-nav-btn span { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.02em; }
+  .mob-nav-btn.is-active { color: #ffffff; }
+  .mob-nav-btn:active { opacity: 0.7; }
+
+  /* ──────────────────────────────────────────
+     LIBRARY / PLAYLIST DRAWER (slide up)
+     ────────────────────────────────────────── */
+  .mob-drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 170;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .mob-drawer-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mob-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 175;
+    background: #181818;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
+    padding-bottom: calc(var(--mob-nav-h) + var(--mob-safe-bottom));
+  }
+  .mob-drawer.is-open {
+    transform: translateY(0);
+  }
+
+  .mob-drawer-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  .mob-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .mob-drawer-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-white);
+  }
+  .mob-drawer-close {
+    background: none; border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 14px; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px;
+    transition: color 0.15s;
+  }
+  .mob-drawer-close:hover { color: #fff; }
+
+  .mob-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mob-drawer-content::-webkit-scrollbar { display: none; }
+
+  /* Copiar estilos de track-list dentro del drawer */
+  .mob-drawer-content .track-list {
+    overflow-y: visible;
+    flex: none;
+  }
+  .mob-drawer-content .folder-btn,
+  .mob-drawer-content .clear-btn { width: 100%; }
+
+  /* ──────────────────────────────────────────
+     SEARCH OVERLAY (pantalla completa)
+     ────────────────────────────────────────── */
+  .mob-search-overlay {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    z-index: 180;
+    background: #111;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    padding-bottom: calc(var(--mob-nav-h) + var(--mob-safe-bottom));
+  }
+  .mob-search-overlay.is-open {
+    transform: translateY(0);
+  }
+
+  .mob-search-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 56px 14px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+
+  .mob-search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+  .mob-search-input-wrap:focus-within {
+    border-color: rgba(255,255,255,0.3);
+  }
+  .mob-search-input-wrap svg { width: 15px; height: 15px; color: rgba(255,255,255,0.4); flex-shrink: 0; }
+  .mob-search-input-wrap input {
+    background: none; border: none; outline: none;
+    color: #fff; font-family: var(--font-body);
+    font-size: 0.9rem; width: 100%;
+  }
+  .mob-search-input-wrap input::placeholder { color: rgba(255,255,255,0.3); }
+
+  .mob-search-cancel {
+    background: none; border: none;
+    color: rgba(255,255,255,0.7);
+    font-family: var(--font-body); font-size: 0.85rem;
+    cursor: pointer; padding: 4px; white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .mob-search-cancel:hover { color: #fff; }
+
+  .mob-search-results {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 0;
+  }
+  .mob-search-results::-webkit-scrollbar { display: none; }
+
+  /* Resultados dentro del search overlay mobile */
+  .mob-search-results .search-results-list { list-style: none; }
+  .mob-search-results .search-result-item {
+    display: flex; align-items: center;
+    gap: 12px; padding: 10px 16px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .mob-search-results .search-result-item:hover { background: rgba(255,255,255,0.05); }
+  .mob-search-results .search-result-cover {
+    width: 46px; height: 46px;
+    border-radius: 8px; overflow: hidden;
+    background: #1e1e1e; flex-shrink: 0;
+  }
+  .mob-search-results .search-result-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mob-search-results .search-result-info { flex: 1; min-width: 0; }
+  .mob-search-results .search-result-title { font-size: 0.88rem; font-weight: 500; color: #e0e0e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mob-search-results .search-result-artist { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mob-search-results .search-result-tags { display: flex; gap: 4px; flex-shrink: 0; }
+  .mob-search-results .search-section-header {
+    padding: 12px 16px 6px;
+    font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.1em; color: rgba(255,255,255,0.3);
+    background: #111; position: sticky; top: 0; z-index: 1;
+  }
+
+  /* Miniplayer en mobile: sobre la bottom nav */
+  .miniplayer {
+    left: 0 !important;
+    bottom: calc(var(--mob-nav-h) + var(--mob-safe-bottom)) !important;
+    padding: 8px 14px !important;
+    gap: 10px !important;
+    border-radius: 10px 10px 0 0;
+  }
+  .miniplayer-cover { width: 40px !important; height: 40px !important; }
+  .miniplayer-play { width: 38px !important; height: 38px !important; }
+  .miniplayer-close { display: none; }
+
 }
+
 @media (max-height: 700px) {
+
   .viz-wrap { height: 44px; }
   .cover-art { width: 100px; height: 100px; }
   .track-title { font-size: 1.1rem; }
