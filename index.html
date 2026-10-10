@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0d0d0d" />
   <title>WAVE · Player</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=2.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=Inter+Tight:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -614,6 +614,12 @@
       </div>
       <button class="mob-search-cancel" id="mobSearchCancel">Cancelar</button>
     </div>
+    <div class="mob-search-tabs" id="mobSearchTabs">
+      <button class="mob-tab-btn is-active" data-tab="all">Todos</button>
+      <button class="mob-tab-btn" data-tab="yt">YouTube</button>
+      <button class="mob-tab-btn" data-tab="local">Biblioteca</button>
+      <button class="mob-tab-btn" data-tab="itunes">iTunes</button>
+    </div>
     <div class="mob-search-results" id="mobSearchResults"></div>
   </div>
 
@@ -683,6 +689,6 @@
     <div id="ytPlayerFrame"></div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=2.1"></script>
 </body>
 </html>

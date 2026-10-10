@@ -1807,7 +1807,9 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
 async function fetchYouTubeItems(q) {
   const mirrors = [
     'https://invidious.f5.si',
-    'https://invidious.flokinet.to'
+    'https://invidious.flokinet.to',
+    'https://yt.artemislena.eu',
+    'https://invidious.drgns.space'
   ];
   let items = null;
 
@@ -1824,12 +1826,12 @@ async function fetchYouTubeItems(q) {
     } catch(e) {}
   }
 
-  // 2. Probar espejos públicos de Invidious
+  // 2. Probar espejos de Invidious
   if (!items) {
     for (const mirror of mirrors) {
       try {
         const res = await fetch(`${mirror}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, {
-          signal: AbortSignal.timeout(3500)
+          signal: AbortSignal.timeout(3000)
         });
         if (res.ok) {
           const data = await res.json();
@@ -3126,6 +3128,20 @@ function startUrlDownload() {
   mobDrawerOverlay.addEventListener('click', closeDrawer);
   mobSearchCancel.addEventListener('click', closeSearchOverlay);
 
+  let mobActiveFilter = 'all';
+  const mobSearchTabsEl = document.getElementById('mobSearchTabs');
+  if (mobSearchTabsEl) {
+    mobSearchTabsEl.querySelectorAll('.mob-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        mobSearchTabsEl.querySelectorAll('.mob-tab-btn').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        mobActiveFilter = btn.dataset.tab || 'all';
+        const q = mobSearchInput.value.trim();
+        if (q) doMobSearch(q);
+      });
+    });
+  }
+
   /* ── Mobile search: same as desktop but renders in overlay ── */
   mobSearchInput.addEventListener('input', () => {
     clearTimeout(mobSearchDebounce);
@@ -3140,33 +3156,44 @@ function startUrlDownload() {
     const results = [];
 
     // Local library matches
-    const localMatches = library.filter(t =>
-      t.title.toLowerCase().includes(q.toLowerCase()) ||
-      t.artist.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 5);
+    if (mobActiveFilter === 'all' || mobActiveFilter === 'local') {
+      const localMatches = library.filter(t =>
+        t.title.toLowerCase().includes(q.toLowerCase()) ||
+        t.artist.toLowerCase().includes(q.toLowerCase())
+      ).slice(0, 5);
 
-    if (localMatches.length) {
-      results.push({ type: 'header', label: 'TU BIBLIOTECA' });
-      localMatches.forEach(t => results.push({ type: 'local', track: t }));
+      if (localMatches.length) {
+        results.push({ type: 'header', label: 'TU BIBLIOTECA' });
+        localMatches.forEach(t => results.push({ type: 'local', track: t }));
+      }
     }
 
     // YouTube + iTunes async
-    const [ytItems, itunesItems] = await Promise.allSettled([
-      fetchYouTubeItems(q),
-      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=5&lang=es_es`, { signal: AbortSignal.timeout(5000) })
-        .then(r => r.json()).then(d => d.results || []).catch(() => [])
-    ]);
+    const tasks = [];
+    if (mobActiveFilter === 'all' || mobActiveFilter === 'yt') {
+      tasks.push(fetchYouTubeItems(q));
+    } else {
+      tasks.push(Promise.resolve([]));
+    }
 
-    const yt = (ytItems.status === 'fulfilled' ? ytItems.value : []) || [];
-    const it = (itunesItems.status === 'fulfilled' ? itunesItems.value : []) || [];
+    if (mobActiveFilter === 'all' || mobActiveFilter === 'itunes') {
+      tasks.push(fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=10&lang=es_es`, { signal: AbortSignal.timeout(5000) })
+        .then(r => r.json()).then(d => d.results || []).catch(() => []));
+    } else {
+      tasks.push(Promise.resolve([]));
+    }
+
+    const [ytRes, itunesRes] = await Promise.allSettled(tasks);
+    const yt = (ytRes.status === 'fulfilled' ? ytRes.value : []) || [];
+    const it = (itunesRes.status === 'fulfilled' ? itunesRes.value : []) || [];
 
     if (yt.length) {
       results.push({ type: 'header', label: 'YOUTUBE' });
-      yt.slice(0, 5).forEach(item => results.push({ type: 'yt', item }));
+      yt.slice(0, 10).forEach(item => results.push({ type: 'yt', item }));
     }
     if (it.length) {
       results.push({ type: 'header', label: 'ITUNES' });
-      it.slice(0, 3).forEach(r => results.push({ type: 'itunes', r }));
+      it.slice(0, 5).forEach(r => results.push({ type: 'itunes', r }));
     }
 
     if (!results.length) {
@@ -3205,7 +3232,6 @@ function startUrlDownload() {
       } else if (entry.type === 'yt') {
         const item = entry.item;
         const thumb = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
-        // Misma lógica de título/artista que el desktop
         let ytTitle = item.title || '';
         let ytArtist = item.author || 'YouTube';
         if (ytTitle.includes(' - ')) {
