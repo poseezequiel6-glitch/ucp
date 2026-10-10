@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAVE · Player</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=Inter+Tight:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+</head>
+<body>
+
+  <canvas id="ambientBg"></canvas>
+  <div class="bg-noise"></div>
+
+  <div class="app-shell">
+
+   
+    <aside class="sidebar">
+
+      
+      <div class="logo">
+        <svg viewBox="0 0 28 28" fill="none" class="logo-icon">
+          <rect width="28" height="28" rx="8" fill="white"/>
+          <path d="M7 10 Q14 6 21 10" stroke="#111" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <path d="M7 14 Q14 10 21 14" stroke="#111" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <path d="M7 18 Q14 14 21 18" stroke="#111" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="logo-text">WAVE</span>
+      </div>
+
+      <div class="search-box" id="searchBox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Buscar canciones..." autocomplete="off" />
+        <div class="search-spinner" id="searchSpinner" style="display:none"></div>
+      </div>
+
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" id="tabLibrary">Biblioteca</button>
+        <button class="tab-btn" id="tabPlaylists">Playlists</button>
+      </div>
+
+     
+      <div class="tab-panel active" id="panelLibrary">
+
+        <div class="library-header">
+          <span class="library-label">CANCIONES</span>
+          <span class="track-count" id="trackCount">0</span>
+        </div>
+
+        
+        <button class="folder-btn" id="folderBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          Elegir carpeta de música
+        </button>
+
+       
+        <input type="file" id="fileInput" accept=".mp3,audio/*" multiple />
+
+        
+        <ul class="track-list" id="trackList">
+          <li class="track-list-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+            Elegí una carpeta de música para comenzar
+          </li>
+        </ul>
+
+        <button class="clear-btn" id="clearLibBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+          Limpiar biblioteca
+        </button>
+
+      </div>
+
+     
+      <div class="tab-panel" id="panelPlaylists">
+
+        <div class="library-header">
+          <span class="library-label">MIS PLAYLISTS</span>
+        
+          <button class="new-playlist-btn" id="newPlaylistBtn" title="Nueva playlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+
+       
+        <ul class="playlist-list" id="playlistList">
+          <li class="track-list-empty" id="playlistEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            Creá tu primera playlist con el botón +
+          </li>
+        </ul>
+
+      </div>
+
+    </aside>
+
+    <main class="main-panel" id="mainPanel">
+
+      
+      <div id="viewPlayer">
+
+        <header class="top-bar">
+          <div class="top-left">
+            <span class="sort-label">Ordenar:</span>
+            <button class="sort-btn" id="sortName">Nombre</button>
+            <button class="sort-btn" id="sortDuration">Duración</button>
+            <button class="sort-btn active" id="sortRecent">Reciente</button>
+          </div>
+          <span class="queue-info" id="queueInfo">—</span>
+          <button class="eq-btn" id="eqBtn" title="Ecualizador">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+    <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+    <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>
+    <line x1="17" y1="16" x2="23" y2="16"/>
+  </svg>
+</button>
+          <button class="settings-btn" id="settingsBtn" title="Ajustes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </header>
+
+        
+         
+         
+      <div class="eq-panel" id="eqPanel" style="display:none">
+  <div class="eq-header">
+    <div class="eq-header-left">
+      <span class="eq-title">Ecualizador</span>
+      <label class="eq-bypass-label">
+        <input type="checkbox" id="eqEnabled" checked style="accent-color:#fff;width:13px;height:13px"/>
+        Activo
+      </label>
+    </div>
+    <button class="eq-close" id="eqClose">✕</button>
+  </div>
+  <div class="eq-presets">
+    <button class="eq-preset-btn is-active" data-preset="flat">Plano</button>
+    <button class="eq-preset-btn" data-preset="bass">Bass Boost</button>
+    <button class="eq-preset-btn" data-preset="vocal">Vocal</button>
+    <button class="eq-preset-btn" data-preset="treble">Agudos</button>
+    <button class="eq-preset-btn" data-preset="electronic">Electrónica</button>
+    <button class="eq-preset-btn" data-preset="acoustic">Acústica</button>
+  </div>
+  <div class="eq-bands" id="eqBands"></div>
+  <div class="eq-footer">
+    <span class="eq-footer-label">Preamp: <strong id="eqPreampLabel">0 dB</strong></span>
+    <input type="range" id="eqPreamp" min="-12" max="12" value="0" step="0.5" style="flex:1;height:3px;" />
+    <button class="eq-reset-btn" id="eqReset">Resetear</button>
+  </div>
+</div>
+        <div class="settings-panel" id="settingsPanel" style="display:none">
+          <div class="settings-header">
+            <span class="settings-title">Ajustes de reproducción</span>
+            <button class="settings-close" id="settingsClose">✕</button>
+          </div>
+
+
+          <!-- Tema de color -->
+          <div class="settings-section">
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label">Tema de color</span>
+                <span class="settings-desc">Cambia la paleta de colores de la interfaz</span>
+              </div>
+            </div>
+            <div class="theme-options" id="themeOptions">
+              <div class="theme-opt is-active" data-theme="dark">
+                <div class="theme-swatch">
+                  <div class="theme-swatch-inner">
+                    <div style="background:#111"></div><div style="background:#161616"></div>
+                    <div style="background:#1e1e1e"></div><div style="background:#0d0d0d"></div>
+                  </div>
+                </div>
+                <span class="theme-name">Oscuro</span>
+              </div>
+              <div class="theme-opt" data-theme="sepia">
+                <div class="theme-swatch">
+                  <div class="theme-swatch-inner">
+                    <div style="background:#13100c"></div><div style="background:#181410"></div>
+                    <div style="background:#221e18"></div><div style="background:#0e0b08"></div>
+                  </div>
+                </div>
+                <span class="theme-name">Sepia</span>
+              </div>
+              <div class="theme-opt" data-theme="midnight">
+                <div class="theme-swatch">
+                  <div class="theme-swatch-inner">
+                    <div style="background:#080c18"></div><div style="background:#0c1220"></div>
+                    <div style="background:#111828"></div><div style="background:#050810"></div>
+                  </div>
+                </div>
+                <span class="theme-name">Noche</span>
+              </div>
+              <div class="theme-opt" data-theme="forest">
+                <div class="theme-swatch">
+                  <div class="theme-swatch-inner">
+                    <div style="background:#08120a"></div><div style="background:#0c1810"></div>
+                    <div style="background:#101e14"></div><div style="background:#050e08"></div>
+                  </div>
+                </div>
+                <span class="theme-name">Bosque</span>
+              </div>
+              <div class="theme-opt" data-theme="cover">
+                <div class="theme-swatch" style="background:linear-gradient(135deg,#1a0a2e,#0a1a3e,#1a2a0a)">
+                  <div style="font-size:14px;display:flex;align-items:center;justify-content:center;width:100%;color:rgba(255,255,255,0.8)">🎨</div>
+                </div>
+                <span class="theme-name">Portada</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Crossfade -->
+          <div class="settings-section">
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label">Crossfade</span>
+                <span class="settings-desc">Superposición suave entre canciones (estilo Spotify)</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="crossfadeToggle" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <div class="settings-sub" id="crossfadeSubRow">
+              <span class="settings-sub-label">Duración: <strong id="crossfadeValLabel">5s</strong></span>
+              <input type="range" class="settings-range" id="crossfadeSlider" min="1" max="12" value="5" step="1" />
+              <span class="settings-range-hint">1s &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 12s</span>
+            </div>
+          </div>
+
+          
+          <div class="settings-section">
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label">Estilo del visualizador</span>
+                <span class="settings-desc">Forma de las barras del espectro</span>
+              </div>
+            </div>
+            <div class="settings-viz-options" id="vizStyleOptions">
+              <button class="viz-opt is-active" data-viz="bars">Barras</button>
+              <button class="viz-opt" data-viz="mirror">Espejo</button>
+              <button class="viz-opt" data-viz="wave">Onda</button>
+              <button class="viz-opt" data-viz="circle">Círculo</button>
+            </div>
+          </div>
+
+          
+          <div class="settings-section">
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label">Reproducción sin pausa</span>
+                <span class="settings-desc">Elimina el silencio entre canciones (gapless)</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="gaplessToggle" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+         
+          <div class="settings-section">
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label">Retroceder al reanudar</span>
+                <span class="settings-desc">Vuelve 5 s atrás al dar play después de una pausa</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="rewindToggle" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <section class="track-hero">
+          <div class="cover-stack">
+            <div class="cover-art" id="coverArt">
+              <svg viewBox="0 0 100 100" fill="none">
+                <rect width="100" height="100" fill="#181818"/>
+                <rect x="26" y="38" width="6" height="24" rx="3" fill="#333"/>
+                <rect x="36" y="28" width="6" height="44" rx="3" fill="#555"/>
+                <rect x="46" y="33" width="6" height="34" rx="3" fill="#777"/>
+                <rect x="56" y="22" width="6" height="56" rx="3" fill="#999"/>
+                <rect x="66" y="32" width="6" height="36" rx="3" fill="#666"/>
+              </svg>
+            </div>
+            <div class="cover-glow"></div>
+          </div>
+          <div class="track-meta">
+            <p class="track-title"  id="trackTitle">Sin canción cargada</p>
+            <p class="track-artist" id="trackArtist">Elegí una carpeta de música</p>
+            <p class="track-album"  id="trackAlbum"></p>
+            <div class="track-badges">
+              <span class="badge" id="badgeIdx">—</span>
+              <span class="badge" id="badgeDuration">—:——</span>
+              <span class="badge" id="badgeYear" style="display:none"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="viz-wrap">
+          <canvas id="vizCanvas"></canvas>
+        </section>
+
+       
+        <section class="lyrics-panel" id="lyricsPanel" style="display:none">
+          <div class="lyrics-header">
+            <div class="lyrics-header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
+              <span id="lyricsTitle">Letra</span>
+            </div>
+            <div class="lyrics-header-right">
+              <span class="lyrics-source" id="lyricsSource"></span>
+              <button class="lyrics-share-btn" id="lyricsShareBtn" title="Compartir línea actual como imagen" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                Compartir
+              </button>
+              <button class="lyrics-close-btn" id="lyricsCloseBtn" title="Cerrar letra">✕</button>
+            </div>
+          </div>
+          <div class="lyrics-body" id="lyricsBody">
+            <div class="lyrics-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
+              <span>Reproducí una canción para ver la letra</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="progress-wrap">
+          <span class="time" id="timeCurrent">0:00</span>
+          <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.05" />
+          <span class="time" id="timeTotal">0:00</span>
+        </section>
+
+        <section class="controls-wrap">
+          <button class="ctrl-ghost" id="btnShuffle" title="Aleatorio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+              <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+            </svg>
+          </button>
+          <button class="ctrl-ghost" id="btnPrev" title="Anterior">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>
+            </svg>
+          </button>
+          <button class="ctrl-play" id="btnPlay">
+            <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
+          </button>
+          <button class="ctrl-ghost" id="btnNext" title="Siguiente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+            </svg>
+          </button>
+          <button class="ctrl-ghost" id="btnRepeat" title="Repetir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="17 1 21 5 17 9"/>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+              <polyline points="7 23 3 19 7 15"/>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+          </button>
+          <button class="ctrl-ghost" id="btnLyrics" title="Ver letra">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+          </button>
+        </section>
+
+        <section class="volume-wrap">
+          <svg class="vol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <input type="range" id="volumeBar" class="volume-bar" min="0" max="1" value="0.75" step="0.01" />
+          <span class="vol-pct" id="volPct">75%</span>
+        </section>
+
+    
+        
+        <section class="queue-section">
+          <div class="queue-header">
+            <div class="queue-title-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span>Cola de reproducción</span>
+              <span class="queue-count" id="queueCount">0 canciones</span>
+            </div>
+            <button class="queue-clear-btn" id="queueClearBtn">Vaciar</button>
+          </div>
+          <ul class="queue-list" id="queueList">
+            <li class="queue-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              Agregá canciones con el botón <strong>+</strong> en la biblioteca
+            </li>
+          </ul>
+        </section>
+
+        <div class="keyboard-hints">
+          <span>Espacio: play/pausa</span>
+          <span>← →: anterior/siguiente</span>
+          <span>↑ ↓: volumen</span>
+        </div>
+
+      </div>
+
+    
+      <div id="viewPlaylist" style="display:none">
+        <header class="playlist-view-header">
+          <button class="back-btn" id="backToPlayer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Volver
+          </button>
+          <div class="playlist-view-info">
+            <div class="playlist-view-cover" id="playlistViewCover">
+              <svg viewBox="0 0 60 60" fill="none">
+                <rect width="60" height="60" rx="8" fill="#1e1e1e"/>
+                <line x1="15" y1="20" x2="45" y2="20" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                <line x1="15" y1="30" x2="45" y2="30" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                <line x1="15" y1="40" x2="35" y2="40" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+             
+              <h2 class="playlist-view-name" id="playlistViewName" contenteditable="false"></h2>
+              <p class="playlist-view-count" id="playlistViewCount">0 canciones</p>
+            </div>
+          </div>
+          <div class="playlist-view-actions">
+           
+            <button class="playlist-play-all-btn" id="playlistPlayAll">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Reproducir todo
+            </button>
+            
+            <button class="playlist-add-songs-btn" id="playlistAddSongs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Agregar canciones
+            </button>
+           
+            <button class="playlist-delete-btn" id="playlistDeleteBtn" title="Eliminar playlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        
+        <ul class="playlist-tracks" id="playlistTracks">
+          <li class="track-list-empty" id="playlistTracksEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+            Tocá "Agregar canciones" para llenar esta playlist
+          </li>
+        </ul>
+
+      </div>
+
+      <div class="modal-overlay" id="addSongsModal" style="display:none">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>Agregar canciones</h3>
+            <button class="modal-close" id="modalClose">✕</button>
+          </div>
+          <div class="modal-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="modalSearchInput" placeholder="Buscar canción..." />
+          </div>
+          <ul class="modal-track-list" id="modalTrackList"></ul>
+          <div class="modal-footer">
+            <button class="modal-confirm-btn" id="modalConfirm">Listo</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+ 
+  <div class="search-dropdown" id="searchDropdown" style="display:none">
+    <div class="search-section-header" id="localSection" style="display:none">
+      <span>EN TU BIBLIOTECA</span>
+    </div>
+    <ul class="search-results-list" id="localResults"></ul>
+    <div class="search-divider" id="searchDivider" style="display:none"></div>
+    <div class="search-section-header" id="itunesSection" style="display:none">
+      <span>ITUNES · PREVIEW 30s</span>
+      <span class="itunes-badge">iTunes</span>
+    </div>
+    <ul class="search-results-list" id="itunesResults"></ul>
+    <div class="search-empty" id="searchEmpty" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Sin resultados
+    </div>
+    <div class="url-download-section" id="urlDownloadSection">
+      <div class="url-download-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+          <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+          <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>DESCARGAR POR URL</span>
+      </div>
+      <div class="url-download-input-wrap">
+        <input type="text" id="urlDownloadInput" placeholder="Pegá un link de YouTube..." autocomplete="off" />
+        <button id="urlDownloadBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+      </div>
+      <div class="url-download-progress" id="urlDownloadProgress" style="display:none">
+        <div class="dl-progress-label" id="urlDownloadLabel">Preparando...</div>
+        <div class="dl-progress-bar-bg"><div class="dl-progress-bar-fill" id="urlDownloadFill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="miniplayer" id="miniplayer">
+  <div class="miniplayer-cover" id="miniCover">
+    <svg viewBox="0 0 42 42" fill="none"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>
+  </div>
+  <div class="miniplayer-info">
+    <div class="miniplayer-title" id="miniTitle">Sin canción</div>
+    <div class="miniplayer-artist" id="miniArtist">—</div>
+  </div>
+  <div class="miniplayer-controls">
+    <button class="miniplayer-btn" id="miniPrev" title="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>
+      </svg>
+    </button>
+    <button class="miniplayer-play" id="miniPlay">
+      <svg id="miniIconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      <svg id="miniIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+      </svg>
+    </button>
+    <button class="miniplayer-btn" id="miniNext" title="Siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+      </svg>
+    </button>
+  </div>
+  <button class="miniplayer-close" id="miniClose" title="Cerrar">✕</button>
+  <div class="miniplayer-progress">
+    <div class="miniplayer-progress-fill" id="miniProgressFill" style="width:0%"></div>
+  </div>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
