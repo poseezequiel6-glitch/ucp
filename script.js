@@ -224,8 +224,22 @@ function drawFrame() {
   requestAnimationFrame(drawFrame);
   const W=vizCanvas.width/(window.devicePixelRatio||1), H=vizCanvas.height/(window.devicePixelRatio||1);
   ctx2d.clearRect(0,0,W,H);
-  if (!analyser||!isPlaying) { drawIdleBars(W,H); return; }
-  analyser.getByteFrequencyData(dataArray);
+  if (!isPlaying) { drawIdleBars(W,H); return; }
+  if (isYtActive) {
+    if (!dataArray || !bufferLen) {
+      bufferLen = 32;
+      dataArray = new Uint8Array(bufferLen);
+    }
+    const t = performance.now() * 0.0035;
+    for (let i = 0; i < bufferLen; i++) {
+      const s = Math.sin(t * 2.2 + i * 0.35) * 0.5 + 0.5;
+      const c = Math.cos(t * 3.8 - i * 0.25) * 0.5 + 0.5;
+      dataArray[i] = Math.min(255, Math.floor((s * 0.6 + c * 0.4) * 210 + 35));
+    }
+  } else {
+    if (!analyser) { drawIdleBars(W,H); return; }
+    analyser.getByteFrequencyData(dataArray);
+  }
 
   if (vizStyle === 'bars') {
     const gap=2, barW=(W-gap*(bufferLen-1))/bufferLen;
@@ -664,6 +678,15 @@ function loadTrack(idx,autoPlay=true){
   if(idx<0||idx>=filteredLib.length)return;
   currentIndex=idx;
   const track=filteredLib[idx];
+  if (track.isOnline) {
+    loadOnlineTrack(track);
+    return;
+  }
+  if (isYtActive && ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+    ytPlayer.stopVideo();
+    stopYtTimer();
+    isYtActive = false;
+  }
   audio.src=track.url; audio.load();
   trackTitle.textContent=track.title; trackArtist.textContent=track.artist; trackAlbum.textContent=track.album||'';
   if(track.year){badgeYear.textContent=track.year;badgeYear.style.display='inline-block';}else badgeYear.style.display='none';
@@ -857,7 +880,19 @@ function updatePlayUI(){
   coverArt.classList.toggle('is-playing',isPlaying);
   trackList.querySelectorAll('.track-item').forEach((item,idx)=>{item.classList.toggle('is-active',idx===currentIndex);item.classList.toggle('is-paused',idx===currentIndex&&!isPlaying);});
 }
-btnPlay.addEventListener('click',()=>{if(!filteredLib.length)return;if(currentIndex<0){loadTrack(0,true);return;}isPlaying?pauseAudio():playAudio();});
+btnPlay.addEventListener('click',()=>{
+  if (isYtActive && ytPlayer) {
+    if (isPlaying) {
+      if (typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
+    } else {
+      if (typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+    }
+    return;
+  }
+  if(!filteredLib.length)return;
+  if(currentIndex<0){loadTrack(0,true);return;}
+  isPlaying?pauseAudio():playAudio();
+});
 
 
 function playNext(){
@@ -880,8 +915,33 @@ btnRepeat .addEventListener('click',()=>{isRepeatMode=(isRepeatMode+1)%3;audio.l
 audio.addEventListener('timeupdate',()=>{if(!audio.duration)return;const pct=(audio.currentTime/audio.duration)*100;progressBar.value=pct;timeCurrent.textContent=formatTime(audio.currentTime);paintSlider(progressBar,pct);});
 audio.addEventListener('loadedmetadata',()=>{timeTotal.textContent=formatTime(audio.duration);if(currentIndex>=0)badgeDuration.textContent=formatTime(audio.duration);});
 audio.addEventListener('ended',playNext);
-progressBar.addEventListener('input',()=>{if(!audio.duration)return;audio.currentTime=(progressBar.value/100)*audio.duration;paintSlider(progressBar,parseFloat(progressBar.value));});
-volumeBar.addEventListener('input',()=>{const v=parseFloat(volumeBar.value);audio.volume=v;userVolume=v;volPct.textContent=`${Math.round(v*100)}%`;paintSlider(volumeBar,v*100);localStorage.setItem('wave-volume',v);});
+progressBar.addEventListener('input',()=>{
+  if (isYtActive && ytPlayer && typeof ytPlayer.getDuration === 'function') {
+    const dur = ytPlayer.getDuration();
+    if (dur > 0) {
+      const seekTime = (progressBar.value / 100) * dur;
+      ytPlayer.seekTo(seekTime, true);
+      timeCurrent.textContent = formatTime(seekTime);
+      paintSlider(progressBar, parseFloat(progressBar.value));
+      if (lyricsVisible && lyricsSynced) syncLyricsToTime(seekTime);
+    }
+    return;
+  }
+  if(!audio.duration)return;
+  audio.currentTime=(progressBar.value/100)*audio.duration;
+  paintSlider(progressBar,parseFloat(progressBar.value));
+});
+volumeBar.addEventListener('input',()=>{
+  const v=parseFloat(volumeBar.value);
+  audio.volume=v;
+  if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+    ytPlayer.setVolume(v * 100);
+  }
+  userVolume=v;
+  volPct.textContent=`${Math.round(v*100)}%`;
+  paintSlider(volumeBar,v*100);
+  localStorage.setItem('wave-volume',v);
+});
 
 clearLibBtn.addEventListener('click',async()=>{
   if(!confirm('¿Borrar toda la biblioteca?'))return;
@@ -1342,9 +1402,83 @@ const localSection    = document.getElementById('localSection');
 const localResults    = document.getElementById('localResults');
 const itunesSection   = document.getElementById('itunesSection');
 const itunesResults   = document.getElementById('itunesResults');
+const ytSection       = document.getElementById('ytSection');
+const ytResults       = document.getElementById('ytResults');
 const searchDivider   = document.getElementById('searchDivider');
+const ytDivider       = document.getElementById('ytDivider');
 const searchEmpty     = document.getElementById('searchEmpty');
 const searchSpinner   = document.getElementById('searchSpinner');
+
+let ytPlayer          = null;
+let ytReady           = false;
+let isYtActive        = false;
+let ytTimeInterval    = null;
+
+window.onYouTubeIframeAPIReady = function() {
+  ytPlayer = new YT.Player('ytPlayerFrame', {
+    height: '100',
+    width: '100',
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      modestbranding: 1,
+      playsinline: 1,
+      rel: 0
+    },
+    events: {
+      onReady: () => {
+        ytReady = true;
+        if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+          ytPlayer.setVolume(userVolume * 100);
+        }
+      },
+      onStateChange: onYtStateChange
+    }
+  });
+};
+
+function onYtStateChange(e) {
+  if (e.data === YT.PlayerState.PLAYING) {
+    isPlaying = true;
+    updatePlayUI();
+    startYtTimer();
+  } else if (e.data === YT.PlayerState.PAUSED) {
+    isPlaying = false;
+    updatePlayUI();
+    stopYtTimer();
+  } else if (e.data === YT.PlayerState.ENDED) {
+    isPlaying = false;
+    updatePlayUI();
+    stopYtTimer();
+    playNext();
+  }
+}
+
+function startYtTimer() {
+  clearInterval(ytTimeInterval);
+  ytTimeInterval = setInterval(() => {
+    if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+    const cur = ytPlayer.getCurrentTime() || 0;
+    const dur = ytPlayer.getDuration() || 0;
+    if (dur > 0) {
+      const pct = (cur / dur) * 100;
+      progressBar.value = pct;
+      timeCurrent.textContent = formatTime(cur);
+      timeTotal.textContent = formatTime(dur);
+      badgeDuration.textContent = formatTime(dur);
+      paintSlider(progressBar, pct);
+    }
+    if (lyricsVisible && lyricsSynced) {
+      syncLyricsToTime(cur);
+    }
+  }, 250);
+}
+
+function stopYtTimer() {
+  clearInterval(ytTimeInterval);
+}
 
 const audioPreview    = new Audio();
 let   previewBar      = null;
@@ -1382,11 +1516,17 @@ searchInput.addEventListener('input', () => {
   clearTimeout(iTunesDebounce);
   itunesSection.style.display = 'none';
   itunesResults.innerHTML = '';
+  if (ytSection) ytSection.style.display = 'none';
+  if (ytResults) ytResults.innerHTML = '';
   searchDivider.style.display = 'none';
+  if (ytDivider) ytDivider.style.display = 'none';
   lastQuery = q;
   if (q.length >= 2) {
     searchSpinner.style.display = 'block';
-    iTunesDebounce = setTimeout(() => fetchITunes(q), 500);
+    iTunesDebounce = setTimeout(() => {
+      fetchITunes(q);
+      fetchYouTube(q);
+    }, 450);
   } else {
     searchSpinner.style.display = 'none';
   }
@@ -1538,7 +1678,9 @@ function renderITunesResults(results) {
     const cover = r.artworkUrl60 || r.artworkUrl30 || '';
   
 const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="cover" loading="lazy" />` : `<svg viewBox="0 0 38 38" fill="none"><rect width="38" height="38" fill="#222"/></svg>`;
-    const tagHtml = alreadyOwned ? `<span class="tag-local" title="Ya la tenés descargada">✓ LOCAL</span>` : `<span class="tag-preview">▶ 30s</span>`;
+    const tagHtml = alreadyOwned
+      ? `<span class="tag-local" title="Ya la tenés descargada">✓ LOCAL</span>`
+      : `<span class="tag-full" title="Canción completa">▶ COMPLETA</span>`;
     li.innerHTML = `
       <div class="search-result-cover">${coverHtml}</div>
       <div class="search-result-info">
@@ -1556,8 +1698,16 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
         if (track) { stopPreview(); hideDropdown(); searchInput.value = ''; applyFilterAndSort(); const idx = filteredLib.findIndex(t => t.id === track.id); if (idx >= 0) { playContext = 'library'; loadTrack(idx, true); } }
         return;
       }
-      playITunesPreview({ title: r.trackName, artist: r.artistName, cover: cover.replace('60x60','80x80'), previewUrl: r.previewUrl, trackUrl: r.trackViewUrl });
       hideDropdown();
+      searchInput.value = '';
+      playAnyTrack({
+        title: r.trackName,
+        artist: r.artistName,
+        album: r.collectionName || '',
+        cover: cover.replace('60x60','300x300').replace('80x80','300x300'),
+        previewUrl: r.previewUrl,
+        duration: Math.round((r.trackTimeMillis || 0) / 1000)
+      });
     });
     if (!alreadyOwned) {
       li.querySelector('.search-download-btn')?.addEventListener('click', e => { e.stopPropagation(); startDownload(`${r.artistName} - ${r.trackName}`, li); });
@@ -1565,6 +1715,196 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
     itunesResults.appendChild(li);
   });
   checkEmpty();
+}
+
+async function fetchYouTube(q) {
+  try {
+    const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
+    if (!res.ok) throw new Error('Invidious error');
+    const items = await res.json();
+    if (q !== lastQuery) return;
+    renderYouTubeResults(Array.isArray(items) ? items.slice(0, 8) : []);
+  } catch (err) {
+    if (q === lastQuery) {
+      renderYouTubeResults([]);
+    }
+  }
+}
+
+function renderYouTubeResults(items) {
+  if (!ytResults) return;
+  ytResults.innerHTML = '';
+  if (!items.length) {
+    if (ytSection) ytSection.style.display = 'none';
+    if (ytDivider) ytDivider.style.display = 'none';
+    checkEmpty();
+    return;
+  }
+
+  if (ytSection) ytSection.style.display = 'flex';
+  if (ytDivider) {
+    ytDivider.style.display = (localResults.children.length > 0 || itunesResults.children.length > 0) ? 'block' : 'none';
+  }
+
+  items.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'search-result-item';
+    const cover = item.videoThumbnails?.find(t => t.quality === 'medium' || t.quality === 'default')?.url 
+               || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+
+    let title = item.title || '';
+    let artist = item.author || 'YouTube';
+    if (title.includes(' - ')) {
+      const parts = title.split(' - ');
+      artist = parts[0].trim();
+      title = parts.slice(1).join(' - ').replace(/\(Official.*?\)|\[Official.*?\]|\(Video.*?\)|\[Video.*?\]|\(Lyric.*?\)|\[Lyric.*?\]/gi, '').trim();
+    }
+
+    const trackObj = {
+      title,
+      artist,
+      album: 'YouTube',
+      cover,
+      duration: item.lengthSeconds || 0,
+      ytId: item.videoId,
+      isOnline: true
+    };
+
+    li.innerHTML = `
+      <div class="search-result-cover"><img src="${cover}" alt="cover" loading="lazy" /></div>
+      <div class="search-result-info">
+        <div class="search-result-title">${escapeHtml(title)}</div>
+        <div class="search-result-artist">${escapeHtml(artist)}</div>
+      </div>
+      <div class="search-result-tags">
+        <span class="tag-full" title="Canción completa">▶ COMPLETA</span>
+        <button class="search-download-btn" title="Añadir a biblioteca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>`;
+
+    li.addEventListener('click', e => {
+      if (e.target.closest('.search-download-btn')) return;
+      hideDropdown();
+      searchInput.value = '';
+      playAnyTrack(trackObj);
+    });
+
+    li.querySelector('.search-download-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      addTrackToOnlineLibrary(trackObj);
+    });
+
+    ytResults.appendChild(li);
+  });
+  checkEmpty();
+}
+
+async function resolveYouTubeVideoId(title, artist) {
+  try {
+    const q = `${artist} ${title}`;
+    const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].videoId) {
+        return data[0].videoId;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function loadOnlineTrack(track) {
+  stopPreview();
+  if (isPlaying && !isYtActive) {
+    pauseAudio();
+  }
+  isYtActive = true;
+  trackTitle.textContent = track.title;
+  trackArtist.textContent = track.artist;
+  trackAlbum.textContent = track.album || '';
+  if (track.duration) {
+    timeTotal.textContent = formatTime(track.duration);
+    badgeDuration.textContent = formatTime(track.duration);
+  } else {
+    timeTotal.textContent = '0:00';
+    badgeDuration.textContent = '—:——';
+  }
+  badgeIdx.textContent = '★';
+  badgeYear.style.display = 'none';
+  updateCoverArt(track.cover);
+  progressBar.value = 0;
+  timeCurrent.textContent = '0:00';
+  paintSlider(progressBar, 0);
+
+  onTrackChangeLyrics(track);
+
+  const startYt = () => {
+    if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+      ytPlayer.loadVideoById(track.ytId);
+      isPlaying = true;
+      updatePlayUI();
+    }
+  };
+
+  if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+    startYt();
+  } else {
+    const interval = setInterval(() => {
+      if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+        clearInterval(interval);
+        startYt();
+      }
+    }, 200);
+  }
+}
+
+async function playAnyTrack(track) {
+  stopPreview();
+  if (track.ytId) {
+    loadOnlineTrack(track);
+    return;
+  }
+  showToast(`Cargando versión completa...`);
+  const vid = await resolveYouTubeVideoId(track.title, track.artist);
+  if (vid) {
+    track.ytId = vid;
+    loadOnlineTrack(track);
+  } else if (track.previewUrl) {
+    showToast('Reproduciendo preview de iTunes (30s)');
+    playITunesPreview(track);
+  } else {
+    showToast('No se encontró el audio de esta canción');
+  }
+}
+
+function addTrackToOnlineLibrary(track) {
+  const exists = library.some(t => t.title.toLowerCase().trim() === track.title.toLowerCase().trim() && t.artist.toLowerCase().trim() === track.artist.toLowerCase().trim());
+  if (exists) {
+    showToast('Ya está en tu biblioteca');
+    return;
+  }
+  const newTrack = {
+    id: idCounter++,
+    name: `${track.artist} - ${track.title}`,
+    title: track.title,
+    artist: track.artist,
+    album: track.album || 'Online',
+    year: '',
+    cover: track.cover,
+    duration: track.duration || 0,
+    url: '',
+    ytId: track.ytId,
+    isOnline: true,
+    addedAt: Date.now()
+  };
+  library.push(newTrack);
+  updateTrackCount();
+  saveMetadata();
+  applyFilterAndSort();
+  showToast(`✓ Agregado a tu biblioteca: "${track.title}"`);
 }
 
 function startDownload(query, resultItem) {
@@ -1720,7 +2060,8 @@ showToast(`✓ Descargado · agregado a la biblioteca`);
 function checkEmpty() {
   const hasLocal  = localResults.children.length > 0;
   const hasItunes = itunesResults.children.length > 0;
-  searchEmpty.style.display = (!hasLocal && !hasItunes) ? 'flex' : 'none';
+  const hasYt     = ytResults && ytResults.children.length > 0;
+  searchEmpty.style.display = (!hasLocal && !hasItunes && !hasYt) ? 'flex' : 'none';
 }
 
 function playITunesPreview(track) {
@@ -1836,8 +2177,13 @@ function renderSyncedLyricsWithSelection() {
 
   ul.querySelectorAll('.lyric-line').forEach((el, i) => {
     el.addEventListener('click', () => {
-      if (audio.duration) audio.currentTime = lyricsLines[i].time;
-      if (!isPlaying) playAudio();
+      if (isYtActive && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+        ytPlayer.seekTo(lyricsLines[i].time, true);
+        if (!isPlaying) ytPlayer.playVideo();
+      } else if (audio.duration) {
+        audio.currentTime = lyricsLines[i].time;
+        if (!isPlaying) playAudio();
+      }
       if (selectedLyricLines.has(i)) { selectedLyricLines.delete(i); el.classList.remove('is-selected'); }
       else {
         if (selectedLyricLines.size >= 4) { showToast('Máximo 4 líneas para compartir'); return; }

@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=Inter+Tight:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 
@@ -546,6 +547,12 @@
       <span class="itunes-badge">iTunes</span>
     </div>
     <ul class="search-results-list" id="itunesResults"></ul>
+    <div class="search-divider" id="ytDivider" style="display:none"></div>
+    <div class="search-section-header" id="ytSection" style="display:none">
+      <span>YOUTUBE · CANCIONES COMPLETAS</span>
+      <span class="itunes-badge" style="background:#e50914;color:#fff;">YouTube</span>
+    </div>
+    <ul class="search-results-list" id="ytResults"></ul>
     <div class="search-empty" id="searchEmpty" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -608,6 +615,10 @@
     <div class="miniplayer-progress-fill" id="miniProgressFill" style="width:0%"></div>
   </div>
 </div>
+
+  <div id="ytPlayerContainer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;opacity:0.01;pointer-events:none;">
+    <div id="ytPlayerFrame"></div>
+  </div>
 
   <script src="script.js"></script>
 </body>
