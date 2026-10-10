@@ -1440,31 +1440,78 @@ function buildLocalResultItem(track) {
   return li;
 }
 
+function fetchITunesJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'itunes_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    }, 5000);
+    function cleanup() {
+      clearTimeout(timer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+      delete window[callbackName];
+    }
+    window[callbackName] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+    script.src = `${url}&callback=${callbackName}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('JSONP error'));
+    };
+    document.body.appendChild(script);
+  });
+}
+
 async function fetchITunes(q) {
   try {
-    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=8&country=AR&lang=es_ar`;
-    let data;
+    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=12&country=AR`;
+    let data = null;
+
+    // 1. Intento directo con CORS (iTunes soporta Access-Control-Allow-Origin: *)
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const localRes = await fetch(`http://localhost:3001/itunes?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(itunesUrl, { signal: controller.signal });
       clearTimeout(timeout);
-      if (!localRes.ok) throw new Error('proxy local error');
-      data = await localRes.json();
-    } catch (localErr) {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(itunesUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('allorigins error');
-      const wrapper = await res.json();
-      data = JSON.parse(wrapper.contents);
+      if (res.ok) {
+        data = await res.json();
+      }
+    } catch (e) {
+      // Si falla fetch directo (bloqueador, etc.), probamos alternativas
     }
+
+    // 2. Si no respondió, intento con JSONP (nunca falla por CORS)
+    if (!data || !data.results) {
+      try {
+        data = await fetchITunesJSONP(itunesUrl);
+      } catch (e) {}
+    }
+
+    // 3. Si sigue sin responder y estamos en entorno local, probar proxy local
+    if ((!data || !data.results) && (location.protocol === 'http:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      try {
+        const localRes = await fetch(`http://localhost:3001/itunes?q=${encodeURIComponent(q)}`);
+        if (localRes.ok) {
+          data = await localRes.json();
+        }
+      } catch (e) {}
+    }
+
     if (q !== lastQuery) return;
-    renderITunesResults(data.results || []);
+    if (data && Array.isArray(data.results)) {
+      renderITunesResults(data.results);
+    } else {
+      renderITunesResults([]);
+    }
   } catch (err) {
     if (q === lastQuery) {
       itunesSection.style.display = 'flex';
       searchDivider.style.display = 'block';
-      itunesResults.innerHTML = `<li style="padding:12px 14px;font-size:.75rem;color:var(--text-dim)">No se pudo conectar con iTunes.</li>`;
+      itunesResults.innerHTML = `<li style="padding:12px 14px;font-size:.75rem;color:var(--text-dim)">No se encontraron resultados en iTunes.</li>`;
       checkEmpty();
     }
   } finally {
