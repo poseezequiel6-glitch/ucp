@@ -85,7 +85,7 @@ let crossFadeActive   = false;
 let crossFadeInterval = null;
 
 const audio = new Audio();
-let userVolume        = parseFloat(localStorage.getItem('wave-volume') ?? '0.75');
+let userVolume        = parseFloat(localStorage.getItem('wave-volume') ?? '1.0');
 audio.volume    = userVolume;
 volumeBar.value = userVolume;
 volPct.textContent = `${Math.round(userVolume * 100)}%`;
@@ -1260,6 +1260,25 @@ async function fetchLyrics(title, artist, trackId) {
     else if (!data && d4) data = d4;
   }
 
+  // 3. Fallback a YouTube Video Description si la canción viene de YouTube o resolvemos su video
+  if (!data) {
+    const ytId = trackId && typeof trackId === 'string' && trackId.length === 11 ? trackId : (currentActiveTrack?.ytId || null);
+    if (ytId) {
+      const ytDescLyrics = await tryFetchYouTubeDescriptionLyrics(ytId);
+      if (ytDescLyrics) {
+        data = { plainLyrics: ytDescLyrics, source: 'YouTube · oficial' };
+      }
+    }
+  }
+
+  // 4. Fallback a otros buscadores (Lyrics.ovh)
+  if (!data) {
+    const ovh = await tryFetchLyricsOvh(cleanT, mainArtist) || await tryFetchLyricsOvh(cleanT, cleanA);
+    if (ovh) {
+      data = { plainLyrics: ovh, source: 'Lyrics.ovh' };
+    }
+  }
+
   if (!data) { showLyricsNotFound(cleanT, cleanA); updateShareBtnVisibility(); return; }
 
   if (data.syncedLyrics) {
@@ -1270,7 +1289,7 @@ async function fetchLyrics(title, artist, trackId) {
     updateShareBtnVisibility();
   } else if (data.plainLyrics) {
     lyricsSynced = false;
-    lyricsSource.textContent = 'LRCLIB · sin sincronizar';
+    lyricsSource.textContent = data.source ? data.source : 'LRCLIB · sin sincronizar';
     renderPlainLyrics(data.plainLyrics);
     updateShareBtnVisibility();
   } else {
@@ -1279,10 +1298,42 @@ async function fetchLyrics(title, artist, trackId) {
   }
 }
 
+async function tryFetchYouTubeDescriptionLyrics(videoId) {
+  try {
+    const res = await fetch(`https://invidious.f5.si/api/v1/videos/${videoId}`, {
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const desc = json.description || '';
+    if (!desc) return null;
+
+    // Buscar bloque de letra en la descripción
+    const match = desc.match(/(?:LETRA|LYRICS)[\s:]*[\r\n]+([\s\S]+?)(?:\n\s*\n\s*(?:Suscríbete|Disfruta|Escucha|Instagram|Facebook|Follow|Connect|Redes|Plataformas|Prod\.|Produced|Beat by|$))/i)
+               || desc.match(/(?:LETRA|LYRICS)[\s:]*[\r\n]+([\s\S]+)/i);
+    if (match && match[1]) {
+      const cleaned = match[1].trim();
+      if (cleaned.length > 50) return cleaned;
+    }
+    return null;
+  } catch { return null; }
+}
+
+async function tryFetchLyricsOvh(title, artist) {
+  try {
+    const res = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.lyrics || null;
+  } catch { return null; }
+}
+
 async function tryFetchLyrics(title, artist) {
   try {
     const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return null;
     const data = await res.json();
     if (data.syncedLyrics || data.plainLyrics) return data;
@@ -1294,10 +1345,10 @@ async function trySearchLyrics(query, artist) {
   try {
     const q = artist ? `${artist} ${query}` : query;
     const url = `https://lrclib.net/api/search?q=${encodeURIComponent(q)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return null;
     const results = await res.json();
-    if (!results || !results.length) return null;
+    if (!results || !Array.isArray(results) || !results.length) return null;
     const synced = results.find(r => r.syncedLyrics);
     const plain  = results.find(r => r.plainLyrics);
     return synced || plain || null;
@@ -1916,6 +1967,12 @@ function loadOnlineTrack(track) {
           videoId: track.ytId,
           startSeconds: 0
         });
+        if (typeof ytPlayer.unMute === 'function') {
+          ytPlayer.unMute();
+        }
+        if (typeof ytPlayer.setVolume === 'function') {
+          ytPlayer.setVolume(Math.round(userVolume * 100));
+        }
         if (typeof ytPlayer.playVideo === 'function') {
           ytPlayer.playVideo();
         }
