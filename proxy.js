@@ -49,6 +49,53 @@ http.createServer((req, res) => {
   }
 
 
+  if (url.pathname === '/yt-search') {
+    const q = url.searchParams.get('q') || '';
+    if (!q.trim()) { res.writeHead(400); res.end('Missing q'); return; }
+
+    const proc = spawn(YTDLP, [
+      '--dump-json',
+      '--flat-playlist',
+      '--default-search', 'ytsearch10',
+      '--cookies', path.join(__dirname, 'cookies.txt'),
+      '--no-warnings',
+      q
+    ]);
+
+    const results = [];
+    let buffer = '';
+
+    proc.stdout.on('data', chunk => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const item = JSON.parse(line);
+          results.push({
+            title: item.title,
+            videoId: item.id,
+            author: item.uploader || item.channel || 'YouTube',
+            lengthSeconds: item.duration || 0,
+            videoThumbnails: [{ quality: 'default', url: `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg` }]
+          });
+        } catch(e) {}
+      }
+    });
+
+    proc.on('close', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(results));
+    });
+
+    proc.on('error', () => {
+      res.writeHead(500);
+      res.end('[]');
+    });
+    return;
+  }
+
   if (url.pathname === '/itunes') {
     const q = url.searchParams.get('q') || '';
     if (!q.trim()) { res.writeHead(400); res.end('Missing q param'); return; }

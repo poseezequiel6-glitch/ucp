@@ -1193,15 +1193,17 @@ let lyricsSynced   = false;
 let lyricsTrackId  = null;
 let lyricActiveIdx = -1;
 
+let currentActiveTrack = null;
+
 btnLyrics.addEventListener('click', () => {
   lyricsVisible = !lyricsVisible;
   lyricsPanel.style.display = lyricsVisible ? 'block' : 'none';
   btnLyrics.classList.toggle('is-on', lyricsVisible);
 
-  if (lyricsVisible && currentIndex >= 0) {
-    const track = filteredLib[currentIndex];
-    if (track && lyricsTrackId !== track.id) {
-      fetchLyrics(track.title, track.artist, track.id);
+  if (lyricsVisible && currentActiveTrack) {
+    const tId = currentActiveTrack.id || currentActiveTrack.ytId;
+    if (lyricsTrackId !== tId || !lyricsLines.length) {
+      fetchLyrics(currentActiveTrack.title, currentActiveTrack.artist, tId);
     }
   }
 });
@@ -1219,23 +1221,44 @@ async function fetchLyrics(title, artist, trackId) {
   lyricActiveIdx = -1;
   showLyricsLoading();
 
-
-  let cleanT = title.replace(/\[.*?\]/g,'').replace(/\(.*?\)/g,'').trim();
-  let cleanA = artist.replace(/\[.*?\]/g,'').replace(/\(.*?\)/g,'').trim();
+  let cleanT = (title || '')
+    .replace(/\[.*?\]/g,'')
+    .replace(/\(.*?\)/g,'')
+    .replace(/(official video|video oficial|video lyric|lyric video|audio oficial|official audio|visualizer|explicit|clean|remix)/gi, '')
+    .trim();
+  let cleanA = (artist || '')
+    .replace(/\[.*?\]/g,'')
+    .replace(/\(.*?\)/g,'')
+    .replace(/(official|music|vevo|records|canal oficial)/gi, '')
+    .trim();
 
   if (cleanT.includes(' - ')) {
     const parts = cleanT.split(' - ');
     cleanT = parts.slice(1).join(' - ').trim();
-    if (!cleanA || cleanA === 'Artista desconocido') cleanA = parts[0].trim();
+    if (!cleanA || cleanA === 'Artista desconocido' || cleanA === 'YouTube') cleanA = parts[0].trim();
   }
-
 
   const mainArtist = cleanA.split(',')[0].split('&')[0].trim();
 
-  const data = await tryFetchLyrics(cleanT, mainArtist)
-            || await tryFetchLyrics(cleanT, cleanA)
-            || await trySearchLyrics(cleanT, mainArtist)
-            || await trySearchLyrics(title.replace(/\[.*?\]/g,'').replace(/\(.*?\)/g,'').trim(), mainArtist);
+  // 1. Prioritize syncedLyrics on get endpoint
+  let data = await tryFetchLyrics(cleanT, mainArtist);
+  if (!data || !data.syncedLyrics) {
+    const d2 = await tryFetchLyrics(cleanT, cleanA);
+    if (d2 && d2.syncedLyrics) data = d2;
+    else if (!data && d2) data = d2;
+  }
+
+  // 2. Search endpoint fallback
+  if (!data || !data.syncedLyrics) {
+    const d3 = await trySearchLyrics(`${mainArtist} ${cleanT}`);
+    if (d3 && d3.syncedLyrics) data = d3;
+    else if (!data && d3) data = d3;
+  }
+  if (!data || !data.syncedLyrics) {
+    const d4 = await trySearchLyrics(cleanT);
+    if (d4 && d4.syncedLyrics) data = d4;
+    else if (!data && d4) data = d4;
+  }
 
   if (!data) { showLyricsNotFound(cleanT, cleanA); updateShareBtnVisibility(); return; }
 
@@ -1382,6 +1405,7 @@ audio.addEventListener('timeupdate', () => {
 
 function onTrackChangeLyrics(track) {
   if (!track) return;
+  currentActiveTrack = track;
   lyricsLines    = [];
   lyricsSynced   = false;
   lyricActiveIdx = -1;
@@ -1389,11 +1413,8 @@ function onTrackChangeLyrics(track) {
   lyricsSource.textContent = '';
   updateShareBtnVisibility();
 
-  if (lyricsVisible) {
-    fetchLyrics(track.title, track.artist, track.id);
-  } else {
-    lyricsTrackId = null;
-  }
+  // Precargar la letra siempre en segundo plano para que esté lista al abrir el panel
+  fetchLyrics(track.title, track.artist, track.id || track.ytId);
 }
 
 
@@ -1662,11 +1683,11 @@ async function fetchITunes(q) {
 function renderITunesResults(results) {
   itunesResults.innerHTML = '';
   if (!results.length) { checkEmpty(); return; }
-  const visible = results.filter(r => r.previewUrl);
+  const visible = results.filter(r => r.previewUrl).slice(0, 5);
   if (!visible.length) { checkEmpty(); return; }
 
   itunesSection.style.display = 'flex';
-  searchDivider.style.display = 'block';
+  searchDivider.style.display = (ytResults.children.length > 0 || localResults.children.length > 0) ? 'block' : 'none';
 
   visible.forEach(r => {
     const alreadyOwned = library.some(t =>
@@ -1718,17 +1739,45 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
 }
 
 async function fetchYouTube(q) {
-  try {
-    const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
-    if (!res.ok) throw new Error('Invidious error');
-    const items = await res.json();
-    if (q !== lastQuery) return;
-    renderYouTubeResults(Array.isArray(items) ? items.slice(0, 8) : []);
-  } catch (err) {
-    if (q === lastQuery) {
-      renderYouTubeResults([]);
+  const mirrors = [
+    'https://invidious.f5.si',
+    'https://invidious.flokinet.to'
+  ];
+  let items = null;
+
+  // 1. Probar proxy local si está disponible
+  if (location.protocol === 'http:' || location.hostname === 'localhost') {
+    try {
+      const localRes = await fetch(`http://localhost:3001/yt-search?q=${encodeURIComponent(q)}`, {
+        signal: AbortSignal.timeout(2000)
+      });
+      if (localRes.ok) {
+        const d = await localRes.json();
+        if (Array.isArray(d) && d.length > 0) items = d;
+      }
+    } catch(e) {}
+  }
+
+  // 2. Probar espejos públicos de Invidious
+  if (!items) {
+    for (const mirror of mirrors) {
+      try {
+        const res = await fetch(`${mirror}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, {
+          signal: AbortSignal.timeout(3500)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            items = data;
+            break;
+          }
+        }
+      } catch(e) {}
     }
   }
+
+  if (q !== lastQuery) return;
+  renderYouTubeResults(items ? items.slice(0, 10) : []);
 }
 
 function renderYouTubeResults(items) {
@@ -1743,7 +1792,7 @@ function renderYouTubeResults(items) {
 
   if (ytSection) ytSection.style.display = 'flex';
   if (ytDivider) {
-    ytDivider.style.display = (localResults.children.length > 0 || itunesResults.children.length > 0) ? 'block' : 'none';
+    ytDivider.style.display = (localResults.children.length > 0) ? 'block' : 'none';
   }
 
   items.forEach(item => {
@@ -1803,16 +1852,21 @@ function renderYouTubeResults(items) {
 }
 
 async function resolveYouTubeVideoId(title, artist) {
-  try {
-    const q = `${artist} ${title}`;
-    const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0 && data[0].videoId) {
-        return data[0].videoId;
+  const mirrors = ['https://invidious.f5.si', 'https://invidious.flokinet.to'];
+  const q = `${artist} ${title}`;
+  for (const mirror of mirrors) {
+    try {
+      const res = await fetch(`${mirror}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, {
+        signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0 && data[0].videoId) {
+          return data[0].videoId;
+        }
       }
-    }
-  } catch (e) {}
+    } catch(e) {}
+  }
   return null;
 }
 
