@@ -1436,29 +1436,43 @@ let isYtActive        = false;
 let ytTimeInterval    = null;
 
 window.onYouTubeIframeAPIReady = function() {
-  ytPlayer = new YT.Player('ytPlayerFrame', {
-    height: '100',
-    width: '100',
-    playerVars: {
-      autoplay: 0,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      modestbranding: 1,
-      playsinline: 1,
-      rel: 0
-    },
-    events: {
-      onReady: () => {
-        ytReady = true;
-        if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
-          ytPlayer.setVolume(userVolume * 100);
-        }
+  if (ytPlayer) return;
+  try {
+    ytPlayer = new YT.Player('ytPlayerFrame', {
+      height: '140',
+      width: '140',
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0
       },
-      onStateChange: onYtStateChange
-    }
-  });
+      events: {
+        onReady: () => {
+          ytReady = true;
+          if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+            ytPlayer.setVolume(userVolume * 100);
+          }
+        },
+        onStateChange: onYtStateChange,
+        onError: (err) => {
+          console.warn('YouTube Player Error:', err);
+          showToast('Error al reproducir desde YouTube');
+        }
+      }
+    });
+  } catch(e) {
+    console.warn('Error inicializando YT.Player:', e);
+  }
 };
+
+// Si el script de YouTube cargó antes de que se defina onYouTubeIframeAPIReady:
+if (window.YT && window.YT.Player) {
+  window.onYouTubeIframeAPIReady();
+}
 
 function onYtStateChange(e) {
   if (e.data === YT.PlayerState.PLAYING) {
@@ -1798,8 +1812,7 @@ function renderYouTubeResults(items) {
   items.forEach(item => {
     const li = document.createElement('li');
     li.className = 'search-result-item';
-    const cover = item.videoThumbnails?.find(t => t.quality === 'medium' || t.quality === 'default')?.url 
-               || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+    const cover = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
 
     let title = item.title || '';
     let artist = item.author || 'YouTube';
@@ -1820,7 +1833,7 @@ function renderYouTubeResults(items) {
     };
 
     li.innerHTML = `
-      <div class="search-result-cover"><img src="${cover}" alt="cover" loading="lazy" /></div>
+      <div class="search-result-cover"><img src="${cover}" alt="cover" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" /></div>
       <div class="search-result-info">
         <div class="search-result-title">${escapeHtml(title)}</div>
         <div class="search-result-artist">${escapeHtml(artist)}</div>
@@ -1876,6 +1889,7 @@ function loadOnlineTrack(track) {
     pauseAudio();
   }
   isYtActive = true;
+  currentActiveTrack = track;
   trackTitle.textContent = track.title;
   trackArtist.textContent = track.artist;
   trackAlbum.textContent = track.album || '';
@@ -1896,22 +1910,39 @@ function loadOnlineTrack(track) {
   onTrackChangeLyrics(track);
 
   const startYt = () => {
-    if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-      ytPlayer.loadVideoById(track.ytId);
-      isPlaying = true;
-      updatePlayUI();
+    try {
+      if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+        ytPlayer.loadVideoById({
+          videoId: track.ytId,
+          startSeconds: 0
+        });
+        if (typeof ytPlayer.playVideo === 'function') {
+          ytPlayer.playVideo();
+        }
+        isPlaying = true;
+        updatePlayUI();
+        startYtTimer();
+      }
+    } catch (e) {
+      console.warn('Error iniciando YouTube player:', e);
     }
   };
 
   if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
     startYt();
   } else {
+    // Si aún se está cargando el SDK de YouTube
+    let attempts = 0;
     const interval = setInterval(() => {
+      attempts++;
       if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
         clearInterval(interval);
         startYt();
+      } else if (attempts > 30) {
+        clearInterval(interval);
+        showToast('El reproductor de YouTube tardó en responder');
       }
-    }, 200);
+    }, 150);
   }
 }
 
