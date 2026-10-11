@@ -44,8 +44,10 @@ const queueList        = document.getElementById('queueList');
 const queueCount       = document.getElementById('queueCount');
 const queueClearBtn    = document.getElementById('queueClearBtn');
 
+const viewHome         = document.getElementById('viewHome');
 const viewPlayer       = document.getElementById('viewPlayer');
 const viewPlaylist     = document.getElementById('viewPlaylist');
+const playerCloseBtn   = document.getElementById('playerCloseBtn');
 const backToPlayer     = document.getElementById('backToPlayer');
 const playlistViewName = document.getElementById('playlistViewName');
 const playlistViewCount= document.getElementById('playlistViewCount');
@@ -436,10 +438,21 @@ function renderPlaylistSidebar() {
   });
 }
 
+function switchView(target) {
+  // target: 'home' | 'player' | 'playlist'
+  if (viewHome)     viewHome.style.display = (target === 'home') ? 'flex' : 'none';
+  if (viewPlayer)   viewPlayer.style.display = (target === 'player') ? 'flex' : 'none';
+  if (viewPlaylist) viewPlaylist.style.display = (target === 'playlist') ? 'flex' : 'none';
+
+  // Mostrar miniplayer si estamos en Home o Playlist y hay una canción cargada
+  if (target !== 'player' && (currentIndex >= 0 || currentActiveTrack)) {
+    showMiniplayer();
+  }
+}
+
 function openPlaylistView(plId) {
   activePlaylistId = plId;
-  viewPlayer.style.display = 'none';
-  viewPlaylist.style.display = 'flex';
+  switchView('playlist');
   viewPlaylist.style.flexDirection = 'column';
   viewPlaylist.style.gap = '20px';
   renderPlaylistView();
@@ -448,10 +461,15 @@ function openPlaylistView(plId) {
 
 backToPlayer.addEventListener('click', () => {
   activePlaylistId = null;
-  viewPlaylist.style.display = 'none';
-  viewPlayer.style.display = 'flex';
+  switchView('home');
   renderPlaylistSidebar();
 });
+
+if (playerCloseBtn) {
+  playerCloseBtn.addEventListener('click', () => {
+    switchView('home');
+  });
+}
 
 function renderPlaylistView() {
   const pl = playlists.find(p=>p.id===activePlaylistId);
@@ -550,7 +568,101 @@ playlistAddSongs.addEventListener('click', () => {
 
 modalClose.addEventListener('click', () => { addSongsModal.style.display='none'; });
 addSongsModal.addEventListener('click', e => { if(e.target===addSongsModal) addSongsModal.style.display='none'; });
-modalSearchInput.addEventListener('input', () => renderModalList(modalSearchInput.value.toLowerCase().trim()));
+const modalTabLocal  = document.getElementById('modalTabLocal');
+const modalTabOnline = document.getElementById('modalTabOnline');
+let modalSourceMode  = 'local'; // 'local' | 'online'
+let modalOnlineDebounce = null;
+
+if (modalTabLocal && modalTabOnline) {
+  modalTabLocal.addEventListener('click', () => {
+    modalTabLocal.classList.add('is-active');
+    modalTabOnline.classList.remove('is-active');
+    modalSourceMode = 'local';
+    renderModalList(modalSearchInput.value.toLowerCase().trim());
+  });
+  modalTabOnline.addEventListener('click', () => {
+    modalTabOnline.classList.add('is-active');
+    modalTabLocal.classList.remove('is-active');
+    modalSourceMode = 'online';
+    renderModalList(modalSearchInput.value.toLowerCase().trim());
+  });
+}
+
+modalSearchInput.addEventListener('input', () => {
+  const q = modalSearchInput.value.trim();
+  if (modalSourceMode === 'online') {
+    clearTimeout(modalOnlineDebounce);
+    if (!q) { modalTrackList.innerHTML = '<li style="padding:20px;text-align:center;color:#666;font-size:.78rem">Escribí para buscar canciones en YouTube</li>'; return; }
+    modalTrackList.innerHTML = '<li style="padding:20px;text-align:center;color:#888;font-size:.78rem">Buscando en YouTube...</li>';
+    modalOnlineDebounce = setTimeout(() => searchOnlineForModal(q), 400);
+  } else {
+    renderModalList(q.toLowerCase());
+  }
+});
+
+async function searchOnlineForModal(q) {
+  modalTrackList.innerHTML = '';
+  const items = await fetchYouTubeItems(q);
+  if (!items.length) {
+    modalTrackList.innerHTML = '<li style="padding:20px;text-align:center;color:#666;font-size:.78rem">Sin resultados en YouTube</li>';
+    return;
+  }
+  items.slice(0, 10).forEach(item => {
+    let title = item.title || '';
+    let artist = item.author || 'YouTube';
+    if (title.includes(' - ')) {
+      const parts = title.split(' - ');
+      artist = parts[0].trim();
+      title = parts.slice(1).join(' - ').replace(/\(Official.*?\)|\[Official.*?\]|\(Video.*?\)|\[Video.*?\]/gi, '').trim();
+    }
+    const thumb = `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`;
+    
+    // Buscar si ya existe en la biblioteca o crear virtual
+    let existing = library.find(t => t.ytId === item.videoId);
+    let trackId = existing ? existing.id : null;
+    let isSelected = trackId !== null && modalSelected.has(trackId);
+
+    const li = document.createElement('li');
+    li.className = 'modal-track-item' + (isSelected ? ' selected' : '');
+    li.innerHTML = `
+      <div class="modal-check">${isSelected ? '✓' : ''}</div>
+      <img src="${thumb}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;margin-right:6px;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" />
+      <div class="modal-track-info">
+        <div class="modal-track-name">${escapeHtml(title)}</div>
+        <div class="modal-track-artist">${escapeHtml(artist)}</div>
+      </div>
+      <span class="modal-track-dur">${formatTime(item.lengthSeconds || 0)}</span>`;
+
+    li.addEventListener('click', () => {
+      if (!existing) {
+        existing = {
+          id: idCounter++,
+          title,
+          artist,
+          album: 'YouTube',
+          cover: thumb,
+          duration: item.lengthSeconds || 0,
+          ytId: item.videoId,
+          isOnline: true,
+          addedAt: Date.now()
+        };
+        library.push(existing);
+        applyFilterAndSort();
+      }
+      trackId = existing.id;
+      if (modalSelected.has(trackId)) {
+        modalSelected.delete(trackId);
+        li.classList.remove('selected');
+        li.querySelector('.modal-check').textContent = '';
+      } else {
+        modalSelected.add(trackId);
+        li.classList.add('selected');
+        li.querySelector('.modal-check').textContent = '✓';
+      }
+    });
+    modalTrackList.appendChild(li);
+  });
+}
 
 function renderModalList(q) {
   modalTrackList.innerHTML='';
@@ -558,7 +670,7 @@ function renderModalList(q) {
     !q || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
   );
   if (!shown.length) {
-    modalTrackList.innerHTML='<li style="padding:20px;text-align:center;color:#555;font-size:.78rem">Sin resultados</li>';
+    modalTrackList.innerHTML='<li style="padding:20px;text-align:center;color:#555;font-size:.78rem">Sin resultados en la biblioteca. Tocá "Buscar en YouTube" arriba para añadirla.</li>';
     return;
   }
   shown.forEach(track => {
@@ -696,6 +808,7 @@ function loadTrack(idx,autoPlay=true){
   renderTrackList(); renderQueueList();
   if(activePlaylistId) renderPlaylistView();
   scrollToActive(); updateQueueInfoDisplay();
+  switchView('player');
   onTrackChangeLyrics(track);
   if(autoPlay)playAudio();
 }
@@ -1493,6 +1606,7 @@ window.onYouTubeIframeAPIReady = function() {
     ytPlayer = new YT.Player('ytPlayerFrame', {
       height: '140',
       width: '140',
+      host: 'https://www.youtube-nocookie.com',
       playerVars: {
         autoplay: 0,
         controls: 0,
@@ -1500,7 +1614,9 @@ window.onYouTubeIframeAPIReady = function() {
         fs: 0,
         modestbranding: 1,
         playsinline: 1,
-        rel: 0
+        rel: 0,
+        iv_load_policy: 3,
+        origin: window.location.origin
       },
       events: {
         onReady: () => {
@@ -1966,6 +2082,7 @@ function loadOnlineTrack(track) {
   timeCurrent.textContent = '0:00';
   paintSlider(progressBar, 0);
 
+  switchView('player');
   onTrackChangeLyrics(track);
 
   const startYt = () => {
@@ -2829,25 +2946,35 @@ mainPanel.addEventListener('scroll', () => {
 });
 
 
-miniPlay.addEventListener('click', () => {
+miniPlay.addEventListener('click', (e) => {
+  e.stopPropagation();
   isPlaying ? pauseAudio() : playAudio();
   miniIconPlay.style.display  = isPlaying ? 'none' : 'block';
   miniIconPause.style.display = isPlaying ? 'block' : 'none';
 });
 
-miniPrev.addEventListener('click', () => {
+miniPrev.addEventListener('click', (e) => {
+  e.stopPropagation();
   playPrev();
   setTimeout(updateMiniplayer, 100);
 });
 
-miniNext.addEventListener('click', () => {
+miniNext.addEventListener('click', (e) => {
+  e.stopPropagation();
   playNext();
   setTimeout(updateMiniplayer, 100);
 });
 
-miniClose.addEventListener('click', () => {
+miniClose.addEventListener('click', (e) => {
+  e.stopPropagation();
   miniDismissed = true;
   hideMiniplayer();
+});
+
+// Tocar el miniplayer abre la pantalla completa del reproductor (estilo Spotify)
+miniplayer.addEventListener('click', (e) => {
+  if (e.target.closest('.miniplayer-btn') || e.target.closest('.miniplayer-play') || e.target.closest('.miniplayer-close')) return;
+  switchView('player');
 });
 
 
@@ -3103,6 +3230,7 @@ function startUrlDownload() {
     closeDrawer();
     closeSearchOverlay();
     setNavActive(mobNavPlayer);
+    switchView('home');
   });
 
   mobNavSearch.addEventListener('click', () => {
@@ -3308,10 +3436,231 @@ function startUrlDownload() {
   /* ── Set initial nav state ── */
   setNavActive(mobNavPlayer);
 
-  /* ── Handle back button to close drawers ── */
-  window.addEventListener('popstate', () => {
-    if (searchOverlayOpen) closeSearchOverlay();
-    else if (activeDrawer) closeDrawer();
-  });
+/* ═══════════════════════════════════════════════
+   SPOTIFY HOME VIEW — Curaduría, Éxitos, Géneros & Podcasts
+   ═══════════════════════════════════════════════ */
 
+(function initHome() {
+  const homeGreeting     = document.getElementById('homeGreeting');
+  const homeQuickGrid    = document.getElementById('homeQuickGrid');
+  const homeHitsList     = document.getElementById('homeHitsList');
+  const homePlaylistsList= document.getElementById('homePlaylistsList');
+  const homeGenresGrid   = document.getElementById('homeGenresGrid');
+  const homePodcastsList = document.getElementById('homePodcastsList');
+  const homeSettingsBtn  = document.getElementById('homeSettingsBtn');
+
+  if (homeSettingsBtn && settingsBtn) {
+    homeSettingsBtn.addEventListener('click', () => settingsBtn.click());
+  }
+
+  // Saludo según la hora
+  function updateGreeting() {
+    if (!homeGreeting) return;
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 12) homeGreeting.textContent = 'Buenos días';
+    else if (hour >= 12 && hour < 20) homeGreeting.textContent = 'Buenas tardes';
+    else homeGreeting.textContent = 'Buenas noches';
+  }
+  updateGreeting();
+
+  // 1. Accesos Rápidos (Quick Picks)
+  const quickPicks = [
+    { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
+    { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk' },
+    { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw' },
+    { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw' }
+  ];
+
+  if (homeQuickGrid) {
+    homeQuickGrid.innerHTML = '';
+    quickPicks.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'home-quick-card';
+      card.innerHTML = `
+        <img class="home-quick-cover" src="${p.cover}" alt="cover" onerror="this.src='https://i.ytimg.com/vi/${p.ytId}/default.jpg'" />
+        <span class="home-quick-name">${escapeHtml(p.title)}</span>
+      `;
+      card.addEventListener('click', () => {
+        playAnyTrack({
+          title: p.title,
+          artist: p.artist,
+          album: 'Home Hits',
+          cover: p.cover,
+          ytId: p.ytId,
+          duration: 240,
+          isOnline: true
+        });
+      });
+      homeQuickGrid.appendChild(card);
+    });
+  }
+
+  // 2. Éxitos del Año & Tendencias
+  const hitsOfTheYear = [
+    { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Éxito Mundial' },
+    { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', sub: 'Tendencia Top 50' },
+    { title: 'Mejor Que Yo', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', sub: 'Hit Latino' },
+    { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', sub: 'Clásico Urbano' },
+    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Trap Latino' }
+  ];
+
+  if (homeHitsList) {
+    homeHitsList.innerHTML = '';
+    hitsOfTheYear.forEach(h => {
+      const card = document.createElement('div');
+      card.className = 'home-card';
+      card.innerHTML = `
+        <div class="home-card-cover-wrap">
+          <img src="${h.cover}" alt="cover" onerror="this.src='https://i.ytimg.com/vi/${h.ytId}/default.jpg'" />
+          <div class="home-card-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
+          </div>
+        </div>
+        <div class="home-card-title">${escapeHtml(h.title)}</div>
+        <div class="home-card-sub">${escapeHtml(h.artist)} · ${escapeHtml(h.sub)}</div>
+      `;
+      card.addEventListener('click', () => {
+        playAnyTrack({
+          title: h.title,
+          artist: h.artist,
+          album: 'Hits del Año',
+          cover: h.cover,
+          ytId: h.ytId,
+          duration: 240,
+          isOnline: true
+        });
+      });
+      homeHitsList.appendChild(card);
+    });
+  }
+
+  // 3. Playlists Recomendadas Automáticas
+  const autoPlaylists = [
+    { title: 'Mansion Reggaeton', sub: 'Lo más caliente del género urbano', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', search: 'reggaeton 2026 mix' },
+    { title: 'Éxitos España & Latam', sub: 'Top 50 canciones más escuchadas', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80', search: 'top canciones 2026' },
+    { title: 'Trap Argentino & Mundial', sub: 'Bhavi, Duki, Milo J, Anuel, ROA', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', search: 'trap latino mix' },
+    { title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', search: 'lofi hip hop radio chill beats' }
+  ];
+
+  if (homePlaylistsList) {
+    homePlaylistsList.innerHTML = '';
+    autoPlaylists.forEach(pl => {
+      const card = document.createElement('div');
+      card.className = 'home-card';
+      card.innerHTML = `
+        <div class="home-card-cover-wrap">
+          <img src="${pl.cover}" alt="cover" />
+          <div class="home-card-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
+          </div>
+        </div>
+        <div class="home-card-title">${escapeHtml(pl.title)}</div>
+        <div class="home-card-sub">${escapeHtml(pl.sub)}</div>
+      `;
+      card.addEventListener('click', async () => {
+        showToast(`Cargando playlist: ${pl.title}...`);
+        const items = await fetchYouTubeItems(pl.search);
+        if (items.length) {
+          const item = items[0];
+          playAnyTrack({
+            title: item.title,
+            artist: item.author || 'YouTube',
+            cover: `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
+            ytId: item.videoId,
+            duration: item.lengthSeconds || 0,
+            isOnline: true
+          });
+        }
+      });
+      homePlaylistsList.appendChild(card);
+    });
+  }
+
+  // 4. Géneros & Estados de Ánimo
+  const genres = [
+    { name: 'Reggaetón', bg: 'linear-gradient(135deg, #e50914, #b20710)', icon: '🔥', query: 'reggaeton hits' },
+    { name: 'Trap Latino', bg: 'linear-gradient(135deg, #8a2be2, #4b0082)', icon: '⚡', query: 'trap latino' },
+    { name: 'RKT & Cumbia', bg: 'linear-gradient(135deg, #ff8c00, #e52d27)', icon: '💃', query: 'rkt cumbia' },
+    { name: 'Pop & Éxitos', bg: 'linear-gradient(135deg, #1db954, #191414)', icon: '✨', query: 'pop hits' },
+    { name: 'Rock Nacional', bg: 'linear-gradient(135deg, #2b5876, #4e4376)', icon: '🎸', query: 'rock en español' },
+    { name: 'Electrónica & Tech', bg: 'linear-gradient(135deg, #00c6ff, #0072ff)', icon: '🎧', query: 'electronic dance music' },
+    { name: 'Hip-Hop', bg: 'linear-gradient(135deg, #f7971e, #ffd200)', icon: '🎤', query: 'hip hop' },
+    { name: 'Chill & Relax', bg: 'linear-gradient(135deg, #43e97b, #38f9d7)', icon: '🌙', query: 'chill music' }
+  ];
+
+  if (homeGenresGrid) {
+    homeGenresGrid.innerHTML = '';
+    genres.forEach(g => {
+      const gCard = document.createElement('div');
+      gCard.className = 'home-genre-card';
+      gCard.style.background = g.bg;
+      gCard.innerHTML = `
+        <span>${escapeHtml(g.name)}</span>
+        <span class="home-genre-icon">${g.icon}</span>
+      `;
+      gCard.addEventListener('click', async () => {
+        showToast(`Buscando género: ${g.name}...`);
+        if (window.innerWidth <= 680) {
+          const mobSearchInput = document.getElementById('mobSearchInput');
+          const mobNavSearch   = document.getElementById('mobNavSearch');
+          if (mobNavSearch && mobSearchInput) {
+            mobNavSearch.click();
+            mobSearchInput.value = g.query;
+            mobSearchInput.dispatchEvent(new Event('input'));
+          }
+        } else {
+          searchInput.value = g.query;
+          showDropdown();
+          searchInput.dispatchEvent(new Event('input'));
+        }
+      });
+      homeGenresGrid.appendChild(gCard);
+    });
+  }
+
+  // 5. Podcasts & Entrevistas
+  const podcasts = [
+    { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80', query: 'the wild project podcast' },
+    { title: 'Biri Biri', host: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80', query: 'biri biri podcast' },
+    { title: 'El Sentido De La Birra', host: 'Ricardo Moya', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=300&q=80', query: 'el sentido de la birra' },
+    { title: 'Música & Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', query: 'chente ydach entrevista anuel' }
+  ];
+
+  if (homePodcastsList) {
+    homePodcastsList.innerHTML = '';
+    podcasts.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'home-card';
+      card.innerHTML = `
+        <div class="home-card-cover-wrap">
+          <img src="${p.cover}" alt="cover" />
+          <div class="home-card-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
+          </div>
+        </div>
+        <div class="home-card-title">${escapeHtml(p.title)}</div>
+        <div class="home-card-sub">${escapeHtml(p.host)}</div>
+      `;
+      card.addEventListener('click', async () => {
+        showToast(`Buscando episodio de ${p.title}...`);
+        const items = await fetchYouTubeItems(p.query);
+        if (items.length) {
+          const item = items[0];
+          playAnyTrack({
+            title: item.title,
+            artist: p.host,
+            cover: `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
+            ytId: item.videoId,
+            duration: item.lengthSeconds || 0,
+            isOnline: true
+          });
+        }
+      });
+      homePodcastsList.appendChild(card);
+    });
+  }
+
+  // Vista inicial por defecto: Home
+  switchView('home');
 })();
+
