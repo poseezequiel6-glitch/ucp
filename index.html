@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0d0d0d" />
   <title>WAVE · Player</title>
-  <link rel="stylesheet" href="style.css?v=4.0" />
+  <link rel="stylesheet" href="style.css?v=4.2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=Inter+Tight:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -564,9 +564,10 @@
               </svg>
             </div>
             <div>
-             
+              <span class="playlist-view-badge" id="playlistViewBadge" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;color:#1db954;text-transform:uppercase;">PLAYLIST OFICIAL</span>
               <h2 class="playlist-view-name" id="playlistViewName" contenteditable="false"></h2>
-              <p class="playlist-view-count" id="playlistViewCount">0 canciones</p>
+              <p class="playlist-view-desc" id="playlistViewDesc" style="font-size:0.78rem;color:var(--text-mid);margin-top:4px;"></p>
+              <p class="playlist-view-count" id="playlistViewCount" style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">0 canciones</p>
             </div>
           </div>
           <div class="playlist-view-actions">
@@ -602,6 +603,22 @@
           </li>
         </ul>
 
+      </div>
+
+      <!-- Modal para añadir canción a una playlist -->
+      <div class="modal-overlay" id="addToPlaylistModal" style="display:none">
+        <div class="modal" style="max-width:380px">
+          <div class="modal-header">
+            <h3>Añadir a playlist</h3>
+            <button class="modal-close" id="closeAddToPlaylistModal">✕</button>
+          </div>
+          <div id="addToPlaylistTrackPreview" style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)"></div>
+          <ul class="modal-track-list" id="addToPlaylistList" style="max-height:240px;padding:8px 12px;"></ul>
+          <div class="modal-footer" style="display:flex;gap:10px;justify-content:space-between;padding:12px 18px;">
+            <button class="folder-btn" id="addToPlaylistNewBtn" style="flex:1;padding:8px 12px;font-size:0.75rem;">+ Nueva playlist</button>
+            <button class="modal-confirm-btn" id="closeAddToPlaylistDone" style="flex:none;padding:8px 16px;">Cerrar</button>
+          </div>
+        </div>
       </div>
 
       <div class="modal-overlay" id="addSongsModal" style="display:none">
@@ -780,6 +797,6 @@
     <div id="ytPlayerFrame"></div>
   </div>
 
-  <script src="script.js?v=4.0"></script>
+  <script src="script.js?v=4.2"></script>
 </body>
 </html>

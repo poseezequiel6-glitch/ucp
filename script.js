@@ -80,6 +80,10 @@ let playlistCounter= 0;
 let activePlaylistId = null;
 let modalSelected  = new Set();
 let playContext    = 'library';
+let activePlaylistTracks = [];
+let activePlaylistIndex  = -1;
+let curatedActivePlaylist = null;
+let currentActiveTrack = null;
 
 const audioCross      = new Audio();
 audioCross.volume     = 0;
@@ -444,13 +448,19 @@ function switchView(target) {
   if (viewPlayer)   viewPlayer.style.display = (target === 'player') ? 'flex' : 'none';
   if (viewPlaylist) viewPlaylist.style.display = (target === 'playlist') ? 'flex' : 'none';
 
-  // Mostrar miniplayer si estamos en Home o Playlist y hay una canción cargada
+  // Sincronizar miniplayer al salir del reproductor
   if (target !== 'player' && (currentIndex >= 0 || currentActiveTrack)) {
+    miniDismissed = false;
     showMiniplayer();
+    updateMiniplayer();
+  } else if (target === 'player') {
+    hideMiniplayer();
+    if (typeof updatePlayUI === 'function') updatePlayUI();
   }
 }
 
 function openPlaylistView(plId) {
+  curatedActivePlaylist = null;
   activePlaylistId = plId;
   switchView('playlist');
   viewPlaylist.style.flexDirection = 'column';
@@ -459,8 +469,178 @@ function openPlaylistView(plId) {
   renderPlaylistSidebar();
 }
 
+function openCuratedPlaylist(plData) {
+  curatedActivePlaylist = plData;
+  activePlaylistId = null;
+  switchView('playlist');
+  viewPlaylist.style.flexDirection = 'column';
+  viewPlaylist.style.gap = '20px';
+
+  const badgeEl = document.getElementById('playlistViewBadge');
+  const descEl  = document.getElementById('playlistViewDesc');
+  if (badgeEl) badgeEl.textContent = plData.badge || 'PLAYLIST OFICIAL';
+  if (descEl)  descEl.textContent  = plData.sub || '';
+
+  playlistViewName.textContent = plData.title;
+  playlistViewName.contentEditable = 'false';
+  playlistViewCount.textContent = `${plData.tracks.length} canciones · Selección Oficial`;
+
+  playlistViewCover.className = 'playlist-view-cover';
+  playlistViewCover.innerHTML = `<img src="${plData.cover}" alt="cover" style="width:100%;height:100%;object-fit:cover" />`;
+
+  if (playlistAddSongs) playlistAddSongs.style.display = 'none';
+  if (playlistDeleteBtn) playlistDeleteBtn.style.display = 'none';
+
+  playlistTracksEl.innerHTML = '';
+  plData.tracks.forEach((track, idx) => {
+    const li = document.createElement('li');
+    li.className = 'playlist-track-item';
+    const cover = track.cover || (track.ytId ? `https://i.ytimg.com/vi/${track.ytId}/hqdefault.jpg` : '');
+    li.innerHTML = `
+      <div class="track-num">${idx + 1}</div>
+      <img class="playlist-track-cover" src="${cover}" alt="cover" onerror="this.src='https://i.ytimg.com/vi/${track.ytId}/default.jpg'" />
+      <div class="track-info">
+        <span class="track-name-item">${escapeHtml(track.title)}</span>
+        <span class="track-artist-item">${escapeHtml(track.artist)}</span>
+      </div>
+      <span class="track-dur">${formatTime(track.duration || 210)}</span>
+      <div class="playlist-track-actions">
+        <button class="pl-action-btn btn-add-queue" title="Añadir a la cola">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="pl-action-btn btn-add-pl" title="Guardar en mis playlists">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+    `;
+
+    li.addEventListener('click', (e) => {
+      if (e.target.closest('.pl-action-btn')) return;
+      activePlaylistTracks = plData.tracks;
+      activePlaylistIndex = idx;
+      playAnyTrack(track);
+    });
+
+    li.querySelector('.btn-add-queue')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      addTrackToQueue(track);
+    });
+
+    li.querySelector('.btn-add-pl')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddToPlaylistModal(track);
+    });
+
+    playlistTracksEl.appendChild(li);
+  });
+}
+
+function addTrackToQueue(track) {
+  playQueue.push(track);
+  renderQueueList();
+  showToast(`Añadido a la cola: ${track.title}`);
+}
+
+function showAddToPlaylistModal(track) {
+  const modal = document.getElementById('addToPlaylistModal');
+  const preview = document.getElementById('addToPlaylistTrackPreview');
+  const list = document.getElementById('addToPlaylistList');
+  const newBtn = document.getElementById('addToPlaylistNewBtn');
+  const closeBtn = document.getElementById('closeAddToPlaylistModal');
+  const doneBtn = document.getElementById('closeAddToPlaylistDone');
+  if (!modal) return;
+
+  const cover = track.cover || (track.ytId ? `https://i.ytimg.com/vi/${track.ytId}/hqdefault.jpg` : '');
+  preview.innerHTML = `
+    <img src="${cover}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;" onerror="this.style.display='none'" />
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:600;font-size:0.85rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(track.title)}</div>
+      <div style="font-size:0.72rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(track.artist)}</div>
+    </div>
+  `;
+
+  list.innerHTML = '';
+  if (!playlists || !playlists.length) {
+    list.innerHTML = `<li style="padding:16px;text-align:center;color:var(--text-dim);font-size:0.78rem;">No tenés playlists creadas todavía.</li>`;
+  } else {
+    playlists.forEach(pl => {
+      const li = document.createElement('li');
+      li.className = 'modal-track-item';
+      li.style.cursor = 'pointer';
+      li.innerHTML = `
+        <div style="font-size:1.1rem;opacity:0.7;">💿</div>
+        <div class="modal-track-info">
+          <div class="modal-track-name">${escapeHtml(pl.name)}</div>
+          <div class="modal-track-artist">${pl.trackIds.length} canciones</div>
+        </div>
+        <button class="search-action-btn">+ Añadir</button>
+      `;
+      li.addEventListener('click', () => {
+        saveTrackToUserPlaylist(track, pl.id);
+        modal.style.display = 'none';
+      });
+      list.appendChild(li);
+    });
+  }
+
+  newBtn.onclick = () => {
+    modal.style.display = 'none';
+    const name = prompt('Nombre de la nueva playlist:');
+    if (!name || !name.trim()) return;
+    const newPl = {
+      id: `pl_${Date.now()}`,
+      name: name.trim(),
+      trackIds: []
+    };
+    playlists.push(newPl);
+    savePlaylists();
+    saveTrackToUserPlaylist(track, newPl.id);
+    renderPlaylistSidebar();
+  };
+
+  closeBtn.onclick = () => { modal.style.display = 'none'; };
+  doneBtn.onclick  = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+  modal.style.display = 'flex';
+}
+
+function saveTrackToUserPlaylist(track, plId) {
+  const pl = playlists.find(p => p.id === plId);
+  if (!pl) return;
+
+  let existing = library.find(t => (t.id === track.id) || (t.title.toLowerCase().trim() === track.title.toLowerCase().trim() && t.artist.toLowerCase().trim() === track.artist.toLowerCase().trim()));
+  if (!existing) {
+    existing = {
+      id: track.id || idCounter++,
+      name: `${track.artist} - ${track.title}`,
+      title: track.title,
+      artist: track.artist,
+      album: track.album || 'Online',
+      cover: track.cover || (track.ytId ? `https://i.ytimg.com/vi/${track.ytId}/hqdefault.jpg` : ''),
+      duration: track.duration || 210,
+      ytId: track.ytId,
+      isOnline: true
+    };
+    library.push(existing);
+    saveLocalMetadata();
+  }
+
+  if (pl.trackIds.includes(existing.id)) {
+    showToast(`Ya está en "${pl.name}"`);
+    return;
+  }
+
+  pl.trackIds.push(existing.id);
+  savePlaylists();
+  renderPlaylistSidebar();
+  if (activePlaylistId === pl.id) renderPlaylistView();
+  showToast(`Guardada en "${pl.name}"`);
+}
+
 backToPlayer.addEventListener('click', () => {
   activePlaylistId = null;
+  curatedActivePlaylist = null;
   switchView('home');
   renderPlaylistSidebar();
 });
@@ -474,6 +654,14 @@ if (playerCloseBtn) {
 function renderPlaylistView() {
   const pl = playlists.find(p=>p.id===activePlaylistId);
   if (!pl) { backToPlayer.click(); return; }
+
+  const badgeEl = document.getElementById('playlistViewBadge');
+  const descEl  = document.getElementById('playlistViewDesc');
+  if (badgeEl) badgeEl.textContent = 'MI PLAYLIST';
+  if (descEl)  descEl.textContent  = 'Playlist personalizada de tu biblioteca';
+
+  if (playlistAddSongs) playlistAddSongs.style.display = 'flex';
+  if (playlistDeleteBtn) playlistDeleteBtn.style.display = 'flex';
 
   const tracks = pl.trackIds.map(id=>library.find(t=>t.id===id)).filter(Boolean);
 
@@ -510,24 +698,43 @@ function renderPlaylistView() {
     const isActive = track.id === library[currentIndex]?.id;
     const li = document.createElement('li');
     li.className = 'playlist-track-item' + (isActive?' is-active':'');
+    const cover = track.cover || (track.ytId ? `https://i.ytimg.com/vi/${track.ytId}/hqdefault.jpg` : '');
     li.innerHTML = `
       <div class="track-num">${idx+1}</div>
+      <img class="playlist-track-cover" src="${cover}" alt="cover" onerror="this.style.display='none'" />
       <div class="track-info">
         <span class="track-name-item">${escapeHtml(track.title)}</span>
         <span class="track-artist-item">${escapeHtml(track.artist)}</span>
       </div>
       <span class="track-dur">${formatTime(track.duration)}</span>
-      <button class="remove-from-pl-btn" title="Quitar de la playlist">✕</button>`;
+      <div class="playlist-track-actions">
+        <button class="pl-action-btn btn-add-queue" title="Añadir a la cola">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="remove-from-pl-btn" title="Quitar de la playlist">✕</button>
+      </div>`;
 
     li.addEventListener('click', e => {
-      if (e.target.classList.contains('remove-from-pl-btn')) return;
-      if (!track.url) { showToast('Reconectá la carpeta para reproducir.'); return; }
-      playContext = pl.id;
-      const libIdx = filteredLib.findIndex(t=>t.id===track.id);
-      if (libIdx>=0) loadTrack(libIdx,true);
+      if (e.target.classList.contains('remove-from-pl-btn') || e.target.closest('.pl-action-btn')) return;
+      activePlaylistTracks = tracks;
+      activePlaylistIndex = idx;
+      if (track.isOnline || track.ytId) {
+        playAnyTrack(track);
+      } else if (track.url) {
+        playContext = pl.id;
+        const libIdx = filteredLib.findIndex(t=>t.id===track.id);
+        if (libIdx>=0) loadTrack(libIdx,true);
+      } else {
+        showToast('Reconectá la carpeta para reproducir.');
+      }
     });
 
-    li.querySelector('.remove-from-pl-btn').addEventListener('click', e => {
+    li.querySelector('.btn-add-queue')?.addEventListener('click', e => {
+      e.stopPropagation();
+      addTrackToQueue(track);
+    });
+
+    li.querySelector('.remove-from-pl-btn')?.addEventListener('click', e => {
       e.stopPropagation();
       pl.trackIds = pl.trackIds.filter(id=>id!==track.id);
       savePlaylists(); renderPlaylistView(); renderPlaylistSidebar();
@@ -538,13 +745,25 @@ function renderPlaylistView() {
 }
 
 playlistPlayAll.addEventListener('click', () => {
+  if (curatedActivePlaylist && curatedActivePlaylist.tracks.length) {
+    activePlaylistTracks = curatedActivePlaylist.tracks;
+    activePlaylistIndex = 0;
+    playAnyTrack(curatedActivePlaylist.tracks[0]);
+    return;
+  }
   const pl = playlists.find(p=>p.id===activePlaylistId);
   if (!pl||!pl.trackIds.length) { showToast('La playlist está vacía.'); return; }
-  const first = library.find(t=>t.id===pl.trackIds[0]);
-  if (!first?.url) { showToast('Reconectá la carpeta primero.'); return; }
-  playContext = pl.id;
-  const idx = filteredLib.findIndex(t=>t.id===first.id);
-  if (idx>=0) loadTrack(idx,true);
+  const tracks = pl.trackIds.map(id=>library.find(t=>t.id===id)).filter(Boolean);
+  if (!tracks.length) return;
+  activePlaylistTracks = tracks;
+  activePlaylistIndex = 0;
+  if (tracks[0].isOnline || tracks[0].ytId) {
+    playAnyTrack(tracks[0]);
+  } else if (tracks[0].url) {
+    playContext = pl.id;
+    const idx = filteredLib.findIndex(t=>t.id===tracks[0].id);
+    if (idx>=0) loadTrack(idx,true);
+  }
 });
 
 playlistDeleteBtn.addEventListener('click', () => {
@@ -790,6 +1009,7 @@ function loadTrack(idx,autoPlay=true){
   if(idx<0||idx>=filteredLib.length)return;
   currentIndex=idx;
   const track=filteredLib[idx];
+  currentActiveTrack=track;
   if (track.isOnline) {
     loadOnlineTrack(track);
     return;
@@ -811,6 +1031,7 @@ function loadTrack(idx,autoPlay=true){
   switchView('player');
   onTrackChangeLyrics(track);
   if(autoPlay)playAudio();
+  updateMiniplayer();
 }
 
 function updateCoverArt(cover){
@@ -985,42 +1206,149 @@ function playAudio(){
   wasPlaying = false;
   initAudioCtx();
   if(audioCtx.state==='suspended')audioCtx.resume();
-  audio.play().then(()=>{isPlaying=true;updatePlayUI();}).catch(console.warn);
+  audio.play().then(()=>{
+    isPlaying=true;
+    updatePlayUI();
+  }).catch(console.warn);
 }
-function pauseAudio(){audio.pause();isPlaying=false;updatePlayUI();}
-function updatePlayUI(){
-  iconPlay.style.display=isPlaying?'none':'block'; iconPause.style.display=isPlaying?'block':'none';
-  coverArt.classList.toggle('is-playing',isPlaying);
-  trackList.querySelectorAll('.track-item').forEach((item,idx)=>{item.classList.toggle('is-active',idx===currentIndex);item.classList.toggle('is-paused',idx===currentIndex&&!isPlaying);});
+
+function pauseAudio(){
+  audio.pause();
+  isPlaying=false;
+  updatePlayUI();
 }
-btnPlay.addEventListener('click',()=>{
+
+function togglePlayPause() {
   if (isYtActive && ytPlayer) {
-    if (isPlaying) {
-      if (typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
-    } else {
-      if (typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+    try {
+      const state = (typeof ytPlayer.getPlayerState === 'function') ? ytPlayer.getPlayerState() : -1;
+      if (state === 1 || isPlaying) {
+        if (typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
+        isPlaying = false;
+      } else {
+        if (typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+        isPlaying = true;
+      }
+      updatePlayUI();
+    } catch(e) {
+      console.warn('Error en togglePlayPause YouTube:', e);
     }
     return;
   }
-  if(!filteredLib.length)return;
-  if(currentIndex<0){loadTrack(0,true);return;}
-  isPlaying?pauseAudio():playAudio();
-});
 
+  if (currentIndex < 0 && filteredLib.length > 0) {
+    loadTrack(0, true);
+    return;
+  }
+
+  if (isPlaying) pauseAudio();
+  else playAudio();
+}
+
+function updatePlayUI(){
+  const playingNow = isPlaying || (isYtActive && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === 1);
+  iconPlay.style.display  = playingNow ? 'none' : 'block';
+  iconPause.style.display = playingNow ? 'block' : 'none';
+  coverArt.classList.toggle('is-playing', playingNow);
+  trackList.querySelectorAll('.track-item').forEach((item,idx)=>{
+    item.classList.toggle('is-active', idx===currentIndex);
+    item.classList.toggle('is-paused', idx===currentIndex && !playingNow);
+  });
+  if (typeof updateMiniplayer === 'function') updateMiniplayer();
+}
+
+btnPlay.addEventListener('click', togglePlayPause);
 
 function playNext(){
-  if(crossFadeActive)return;
-  if(!filteredLib.length)return;
-  if(isRepeatMode===2){audio.currentTime=0;playAudio();return;}
-  if(playQueue.length>0){const next=playQueue.shift();renderQueueList();renderTrackList();const i=filteredLib.findIndex(t=>t.id===next.id);if(i>=0)loadTrack(i,true);return;}
-  let nextIdx;
-  if(isShuffleOn){do{nextIdx=Math.floor(Math.random()*filteredLib.length);}while(filteredLib.length>1&&nextIdx===currentIndex);}
-  else{nextIdx=currentIndex+1;if(nextIdx>=filteredLib.length){if(isRepeatMode===1)nextIdx=0;else{pauseAudio();return;}}}
-  loadTrack(nextIdx,true);
+  if (crossFadeActive) return;
+
+  // 1. Si hay canciones agregadas a la cola por el usuario
+  if (playQueue.length > 0) {
+    const next = playQueue.shift();
+    renderQueueList();
+    renderTrackList();
+    if (next.isOnline || next.ytId) {
+      playAnyTrack(next);
+    } else {
+      const i = filteredLib.findIndex(t => t.id === next.id);
+      if (i >= 0) loadTrack(i, true);
+    }
+    return;
+  }
+
+  // 2. Si estamos reproduciendo una playlist activa / lista de canciones (oficial, álbum, hits)
+  if (activePlaylistTracks && activePlaylistTracks.length > 0) {
+    if (isRepeatMode === 2) {
+      if (isYtActive && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+        ytPlayer.seekTo(0, true);
+        ytPlayer.playVideo();
+      } else {
+        audio.currentTime = 0;
+        playAudio();
+      }
+      return;
+    }
+    let nextIdx;
+    if (isShuffleOn) {
+      do {
+        nextIdx = Math.floor(Math.random() * activePlaylistTracks.length);
+      } while (activePlaylistTracks.length > 1 && nextIdx === activePlaylistIndex);
+    } else {
+      nextIdx = activePlaylistIndex + 1;
+      if (nextIdx >= activePlaylistTracks.length) {
+        nextIdx = 0;
+      }
+    }
+    activePlaylistIndex = nextIdx;
+    playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
+    return;
+  }
+
+  // 3. Si estamos en la biblioteca local
+  if (filteredLib.length > 0) {
+    if (isRepeatMode === 2) { audio.currentTime = 0; playAudio(); return; }
+    let nextIdx;
+    if (isShuffleOn) {
+      do { nextIdx = Math.floor(Math.random() * filteredLib.length); } while (filteredLib.length > 1 && nextIdx === currentIndex);
+    } else {
+      nextIdx = currentIndex + 1;
+      if (nextIdx >= filteredLib.length) {
+        if (isRepeatMode === 1) nextIdx = 0;
+        else { pauseAudio(); return; }
+      }
+    }
+    loadTrack(nextIdx, true);
+  }
 }
-function playPrev(){if(!filteredLib.length)return;if(audio.currentTime>3){audio.currentTime=0;return;}const prev=isShuffleOn?Math.floor(Math.random()*filteredLib.length):Math.max(0,currentIndex-1);loadTrack(prev,true);}
-btnNext.addEventListener('click',playNext);
-btnPrev.addEventListener('click',playPrev);
+
+function playPrev(){
+  if (isYtActive && ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && ytPlayer.getCurrentTime() > 3) {
+    ytPlayer.seekTo(0, true);
+    return;
+  }
+  if (!isYtActive && audio.currentTime > 3) {
+    audio.currentTime = 0;
+    return;
+  }
+
+  // 1. Si hay playlist activa
+  if (activePlaylistTracks && activePlaylistTracks.length > 0) {
+    let prevIdx = isShuffleOn ? Math.floor(Math.random() * activePlaylistTracks.length) : activePlaylistIndex - 1;
+    if (prevIdx < 0) prevIdx = activePlaylistTracks.length - 1;
+    activePlaylistIndex = prevIdx;
+    playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
+    return;
+  }
+
+  // 2. Si estamos en la biblioteca local
+  if (filteredLib.length > 0) {
+    const prev = isShuffleOn ? Math.floor(Math.random() * filteredLib.length) : Math.max(0, currentIndex - 1);
+    loadTrack(prev, true);
+  }
+}
+
+btnNext.addEventListener('click', playNext);
+btnPrev.addEventListener('click', playPrev);
 
 btnShuffle.addEventListener('click',()=>{isShuffleOn=!isShuffleOn;btnShuffle.classList.toggle('is-on',isShuffleOn);});
 btnRepeat .addEventListener('click',()=>{isRepeatMode=(isRepeatMode+1)%3;audio.loop=isRepeatMode===2;btnRepeat.classList.toggle('is-on',isRepeatMode>0);btnRepeat.title=['Repetir: off','Repetir: todo','Repetir: uno'][isRepeatMode];});
@@ -1306,8 +1634,6 @@ let lyricsLines    = [];
 let lyricsSynced   = false;
 let lyricsTrackId  = null;
 let lyricActiveIdx = -1;
-
-let currentActiveTrack = null;
 
 btnLyrics.addEventListener('click', () => {
   lyricsVisible = !lyricsVisible;
@@ -1646,14 +1972,17 @@ function onYtStateChange(e) {
   if (e.data === YT.PlayerState.PLAYING) {
     isPlaying = true;
     updatePlayUI();
+    updateMiniplayer();
     startYtTimer();
   } else if (e.data === YT.PlayerState.PAUSED) {
     isPlaying = false;
     updatePlayUI();
+    updateMiniplayer();
     stopYtTimer();
   } else if (e.data === YT.PlayerState.ENDED) {
     isPlaying = false;
     updatePlayUI();
+    updateMiniplayer();
     stopYtTimer();
     playNext();
   }
@@ -1672,6 +2001,7 @@ function startYtTimer() {
       timeTotal.textContent = formatTime(dur);
       badgeDuration.textContent = formatTime(dur);
       paintSlider(progressBar, pct);
+      if (miniProgressFill) miniProgressFill.style.width = pct + '%';
     }
     if (lyricsVisible && lyricsSynced) {
       syncLyricsToTime(cur);
@@ -2013,8 +2343,9 @@ function renderYouTubeResults(items) {
         <div class="search-result-title">${escapeHtml(title)}</div>
         <div class="search-result-artist">${escapeHtml(artist)}</div>
       </div>
-      <div class="search-result-tags">
-        <span class="tag-full" title="Canción completa">▶ COMPLETA</span>
+      <div class="search-result-tags" style="display:flex;gap:6px;align-items:center;">
+        <button class="search-action-btn btn-desk-queue" title="Añadir a la cola">+ Fila</button>
+        <button class="search-action-btn btn-desk-pl" title="Añadir a playlist">+ Playlist</button>
         <button class="search-download-btn" title="Añadir a biblioteca">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -2023,10 +2354,20 @@ function renderYouTubeResults(items) {
       </div>`;
 
     li.addEventListener('click', e => {
-      if (e.target.closest('.search-download-btn')) return;
+      if (e.target.closest('.search-action-btn') || e.target.closest('.search-download-btn')) return;
       hideDropdown();
       searchInput.value = '';
       playAnyTrack(trackObj);
+    });
+
+    li.querySelector('.btn-desk-queue')?.addEventListener('click', e => {
+      e.stopPropagation();
+      addTrackToQueue(trackObj);
+    });
+
+    li.querySelector('.btn-desk-pl')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showAddToPlaylistModal(trackObj);
     });
 
     li.querySelector('.search-download-btn')?.addEventListener('click', e => {
@@ -2065,6 +2406,7 @@ function loadOnlineTrack(track) {
   }
   isYtActive = true;
   currentActiveTrack = track;
+  currentIndex = -1;
   trackTitle.textContent = track.title;
   trackArtist.textContent = track.artist;
   trackAlbum.textContent = track.album || '';
@@ -2082,6 +2424,7 @@ function loadOnlineTrack(track) {
   timeCurrent.textContent = '0:00';
   paintSlider(progressBar, 0);
 
+  updateMiniplayer();
   switchView('player');
   onTrackChangeLyrics(track);
 
@@ -2103,6 +2446,7 @@ function loadOnlineTrack(track) {
         }
         isPlaying = true;
         updatePlayUI();
+        updateMiniplayer();
         startYtTimer();
       }
     } catch (e) {
@@ -2130,6 +2474,16 @@ function loadOnlineTrack(track) {
 
 async function playAnyTrack(track) {
   stopPreview();
+  if (!activePlaylistTracks || !activePlaylistTracks.length) {
+    if (window.defaultMusicCatalog && window.defaultMusicCatalog.length) {
+      activePlaylistTracks = window.defaultMusicCatalog;
+      const foundIdx = activePlaylistTracks.findIndex(t => (t.ytId && t.ytId === track.ytId) || (t.title && t.title.toLowerCase() === (track.title || '').toLowerCase()));
+      activePlaylistIndex = foundIdx >= 0 ? foundIdx : 0;
+    } else {
+      activePlaylistTracks = [track];
+      activePlaylistIndex = 0;
+    }
+  }
   if (track.ytId) {
     loadOnlineTrack(track);
     return;
@@ -2900,7 +3254,7 @@ let miniDismissed      = false;
 
 
 function updateMiniplayer() {
-  const track = (currentIndex >= 0 && filteredLib[currentIndex]) ? filteredLib[currentIndex] : currentActiveTrack;
+  const track = (isYtActive ? currentActiveTrack : null) || (currentIndex >= 0 && filteredLib[currentIndex]) || currentActiveTrack;
   if (!track) return;
 
   miniTitle.textContent  = track.title || 'Sin título';
@@ -2933,22 +3287,19 @@ function hideMiniplayer() {
 
 const mainPanel = document.getElementById('mainPanel');
 mainPanel.addEventListener('scroll', () => {
- 
-  if (mainPanel.scrollTop > 200 && currentIndex >= 0) {
-    if (!miniDismissed) showMiniplayer();
-  } else {
-    hideMiniplayer();
-  
-    if (mainPanel.scrollTop < 50) miniDismissed = false;
+  if (viewPlayer && viewPlayer.style.display !== 'none') {
+    if (mainPanel.scrollTop > 200 && (currentIndex >= 0 || currentActiveTrack)) {
+      if (!miniDismissed) showMiniplayer();
+    } else {
+      hideMiniplayer();
+      if (mainPanel.scrollTop < 50) miniDismissed = false;
+    }
   }
 });
 
-
 miniPlay.addEventListener('click', (e) => {
   e.stopPropagation();
-  isPlaying ? pauseAudio() : playAudio();
-  miniIconPlay.style.display  = isPlaying ? 'none' : 'block';
-  miniIconPause.style.display = isPlaying ? 'block' : 'none';
+  togglePlayPause();
 });
 
 miniPrev.addEventListener('click', (e) => {
@@ -3348,12 +3699,31 @@ function startUrlDownload() {
 
       if (entry.type === 'local') {
         const t = entry.track;
-        const cover = t.cover ? `<img src="${t.cover}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" />` : `<div style="width:46px;height:46px;border-radius:8px;background:#1e1e1e;"></div>`;
-        li.innerHTML = `${cover}<div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(t.artist)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)">LOCAL</span>`;
-        li.addEventListener('click', () => {
+        const cover = t.cover ? `<img src="${t.cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;" />` : `<div style="width:44px;height:44px;border-radius:8px;background:#1e1e1e;"></div>`;
+        li.innerHTML = `
+          ${cover}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.88rem;font-weight:600;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</div>
+            <div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(t.artist)}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="search-action-btn btn-mob-queue" title="Añadir a la cola">+ Fila</button>
+            <button class="search-action-btn btn-mob-pl" title="Añadir a playlist">+ Playlist</button>
+          </div>
+        `;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.search-action-btn')) return;
           const idx = filteredLib.findIndex(x => x.id === t.id);
           if (idx >= 0) { playContext = 'library'; loadTrack(idx, true); }
           closeSearchOverlay();
+        });
+        li.querySelector('.btn-mob-queue')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addTrackToQueue(t);
+        });
+        li.querySelector('.btn-mob-pl')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showAddToPlaylistModal(t);
         });
       } else if (entry.type === 'yt') {
         const item = entry.item;
@@ -3366,26 +3736,65 @@ function startUrlDownload() {
           ytTitle = parts.slice(1).join(' - ').replace(/\(Official.*?\)|\[Official.*?\]|\(Video.*?\)|\[Video.*?\]|\(Lyric.*?\)|\[Lyric.*?\]/gi, '').trim();
         }
         const ytTrack = { title: ytTitle, artist: ytArtist, album: 'YouTube', cover: thumb, ytId: item.videoId, duration: item.lengthSeconds || 0, isOnline: true };
-        li.innerHTML = `<img src="${thumb}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ytTitle)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(ytArtist)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(229,9,20,.15);color:#ff4444;border:1px solid rgba(229,9,20,.3)">YT</span>`;
-        li.addEventListener('click', () => {
+        li.innerHTML = `
+          <img src="${thumb}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;" onerror="this.src='https://i.ytimg.com/vi/${item.videoId}/default.jpg'" />
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.88rem;font-weight:600;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ytTitle)}</div>
+            <div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(ytArtist)}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="search-action-btn btn-mob-queue" title="Añadir a la cola">+ Fila</button>
+            <button class="search-action-btn btn-mob-pl" title="Añadir a playlist">+ Playlist</button>
+          </div>
+        `;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.search-action-btn')) return;
           closeSearchOverlay();
           playAnyTrack(ytTrack);
+        });
+        li.querySelector('.btn-mob-queue')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addTrackToQueue(ytTrack);
+        });
+        li.querySelector('.btn-mob-pl')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showAddToPlaylistModal(ytTrack);
         });
       } else if (entry.type === 'itunes') {
         const r = entry.r;
         if (!r.previewUrl) return;
         const cover = (r.artworkUrl60 || '').replace('60x60','80x80');
-        li.innerHTML = `<img src="${cover}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;" /><div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.trackName)}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(r.artistName)}</div></div><span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(252,60,68,.15);color:#fc3c44;border:1px solid rgba(252,60,68,.3)">ITUNES</span>`;
-        li.addEventListener('click', () => {
+        const itunesTrack = {
+          title: r.trackName,
+          artist: r.artistName,
+          album: r.collectionName || '',
+          cover: (r.artworkUrl60 || '').replace('60x60','300x300'),
+          previewUrl: r.previewUrl,
+          duration: Math.round((r.trackTimeMillis || 0) / 1000)
+        };
+        li.innerHTML = `
+          <img src="${cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;" />
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.88rem;font-weight:600;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.trackName)}</div>
+            <div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-top:2px">${escapeHtml(r.artistName)}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="search-action-btn btn-mob-queue" title="Añadir a la cola">+ Fila</button>
+            <button class="search-action-btn btn-mob-pl" title="Añadir a playlist">+ Playlist</button>
+          </div>
+        `;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.search-action-btn')) return;
           closeSearchOverlay();
-          playAnyTrack({
-            title: r.trackName,
-            artist: r.artistName,
-            album: r.collectionName || '',
-            cover: (r.artworkUrl60 || '').replace('60x60','300x300'),
-            previewUrl: r.previewUrl,
-            duration: Math.round((r.trackTimeMillis || 0) / 1000)
-          });
+          playAnyTrack(itunesTrack);
+        });
+        li.querySelector('.btn-mob-queue')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addTrackToQueue(itunesTrack);
+        });
+        li.querySelector('.btn-mob-pl')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showAddToPlaylistModal(itunesTrack);
         });
       }
 
@@ -3531,11 +3940,134 @@ function startUrlDownload() {
     `;
 
     homeHero.addEventListener('click', () => {
+      activePlaylistTracks = [heroTrack, ...hitsOfTheYear];
+      activePlaylistIndex = 0;
       playAnyTrack({
         ...heroTrack,
         isOnline: true
       });
     });
+  }
+
+  // Catálogo Curado Oficial (Playlists & Álbumes Completos estilo Spotify)
+  const curatedCatalog = {
+    mansion: {
+      id: 'curated_mansion',
+      title: 'Mansión Reggaetón',
+      badge: 'PLAYLIST OFICIAL',
+      sub: 'Lo más caliente del género urbano en el mundo · Éxitos 2026',
+      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
+      tracks: [
+        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
+        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
+        { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
+        { title: 'Amanece', artist: 'Anuel AA, Haze', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true },
+        { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 224, isOnline: true },
+        { title: 'Medallo', artist: 'Blessd, Justin Quiles, Lenny Tavárez', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true },
+        { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218, isOnline: true },
+        { title: 'La Jumpa', artist: 'Arcángel, Bad Bunny', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 255, isOnline: true }
+      ]
+    },
+    exitos: {
+      id: 'curated_exitos',
+      title: 'Éxitos España & Latam',
+      badge: 'TOP 50 OFICIAL',
+      sub: 'Top 50 canciones más escuchadas hoy en Argentina, España y México',
+      cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80',
+      tracks: [
+        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
+        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
+        { title: 'Mejor Que Yo', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
+        { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true },
+        { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 235, isOnline: true },
+        { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 224, isOnline: true },
+        { title: 'Medallo', artist: 'Blessd, Justin Quiles', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true },
+        { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218, isOnline: true }
+      ]
+    },
+    emmanuel: {
+      id: 'curated_emmanuel',
+      title: 'Álbum: Emmanuel',
+      badge: 'ÁLBUM OFICIAL',
+      sub: 'Anuel AA · 2020 · 22 canciones de puro trap y reggaetón',
+      cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg',
+      tracks: [
+        { title: 'Hasta Que Dios Diga', artist: 'Anuel AA, Bad Bunny', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 246, isOnline: true },
+        { title: 'Fútbol y Rumba', artist: 'Anuel AA, Enrique Iglesias', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 221, isOnline: true },
+        { title: 'Narcos', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 260, isOnline: true },
+        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
+        { title: 'Reggaetonera', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 212, isOnline: true },
+        { title: 'Antes y Después', artist: 'Anuel AA, Kendo Kaponi, Yandel', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 268, isOnline: true }
+      ]
+    },
+    trap: {
+      id: 'curated_trap',
+      title: 'Trap Latino & Argentino',
+      badge: 'PLAYLIST OFICIAL',
+      sub: 'Duki, Milo J, Bhavi, Anuel, YSY A, Luar La L',
+      cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
+      tracks: [
+        { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 235, isOnline: true },
+        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
+        { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
+        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
+        { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true }
+      ]
+    },
+    chill: {
+      id: 'curated_chill',
+      title: 'Modo Chill & Estudio',
+      badge: 'PLAYLIST OFICIAL',
+      sub: 'Lo-fi, acústicos y sonidos tranquilos para concentrarse y relajarse',
+      cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80',
+      tracks: [
+        { title: 'Lofi Chill Beats', artist: 'Lofi Girl', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', ytId: 'jfKfPfyJRdk', duration: 1800, isOnline: true },
+        { title: 'Coffee Study Vibes', artist: 'Chillhop Music', cover: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&q=80', ytId: '5qap5aO4i9A', duration: 180, isOnline: true },
+        { title: 'Rainy Day Acoustic', artist: 'Lofi Sleep', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', ytId: '7NOSDKb0HlU', duration: 195, isOnline: true }
+      ]
+    },
+    rkt: {
+      id: 'curated_rkt',
+      title: 'RKT & Fiesta Fin de Semana',
+      badge: 'FIESTA TOTAL',
+      sub: 'L-Gante, La Joaqui, Callejero Fino, Rei, BM y lo mejor del Turreo',
+      cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80',
+      tracks: [
+        { title: 'Tu Turrito', artist: 'Rei, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', ytId: '-3HjrdC0dAk', duration: 180, isOnline: true },
+        { title: 'M.A (Mejores Amigos)', artist: 'BM, Callejero Fino, La Joaqui', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', ytId: 'HdpJEauH7cY', duration: 195, isOnline: true },
+        { title: 'Medallo', artist: 'Blessd, Justin Quiles', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true }
+      ]
+    },
+    podcasts: {
+      id: 'curated_podcasts',
+      title: 'Podcasts & Entrevistas Urbanas',
+      badge: 'PODCASTS SPOTIFY',
+      sub: 'Música, charlas y entrevistas exclusivas de la escena',
+      cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=500&q=80',
+      tracks: [
+        { title: 'The Wild Project #168', artist: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80', ytId: 'HdpJEauH7cY', duration: 7200, isOnline: true },
+        { title: 'Entrevista Exclusiva', artist: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', ytId: 'VmRUE1A_Idw', duration: 3600, isOnline: true },
+        { title: 'Biri Biri Podcast', artist: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80', ytId: 'gEGd-vR--Jw', duration: 3200, isOnline: true }
+      ]
+    }
+  };
+
+  // Respaldo global para que Siguiente / Anterior siempre tengan contexto
+  window.defaultMusicCatalog = [
+    ...curatedCatalog.mansion.tracks,
+    ...curatedCatalog.exitos.tracks,
+    ...curatedCatalog.emmanuel.tracks
+  ];
+
+  // Enlaces "Ver más" abren las playlists oficiales
+  if (linkMoreHits) {
+    linkMoreHits.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.exitos));
+  }
+  if (linkMorePlaylists) {
+    linkMorePlaylists.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.mansion));
+  }
+  if (linkMorePodcasts) {
+    linkMorePodcasts.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.podcasts));
   }
 
   // 2. Accesos Rápidos (Quick Picks) — 6 tracks estilo Spotify
@@ -3545,12 +4077,12 @@ function startUrlDownload() {
     { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw' },
     { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw' },
     { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
-    { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/fS9c7Lw973k/hqdefault.jpg', ytId: 'fS9c7Lw973k' }
+    { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U' }
   ];
 
   if (homeQuickGrid) {
     homeQuickGrid.innerHTML = '';
-    quickPicks.forEach(p => {
+    quickPicks.forEach((p, pIdx) => {
       const card = document.createElement('div');
       card.className = 'home-quick-card';
       card.innerHTML = `
@@ -3561,15 +4093,17 @@ function startUrlDownload() {
         </button>
       `;
       card.addEventListener('click', () => {
-        playAnyTrack({
-          title: p.title,
-          artist: p.artist,
+        activePlaylistTracks = quickPicks.map(x => ({
+          title: x.title,
+          artist: x.artist,
           album: 'Quick Picks',
-          cover: p.cover,
-          ytId: p.ytId,
+          cover: x.cover,
+          ytId: x.ytId,
           duration: 240,
           isOnline: true
-        });
+        }));
+        activePlaylistIndex = pIdx;
+        playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
       });
       homeQuickGrid.appendChild(card);
     });
@@ -3623,7 +4157,7 @@ function startUrlDownload() {
 
   if (homeHitsList) {
     homeHitsList.innerHTML = '';
-    hitsOfTheYear.forEach(h => {
+    hitsOfTheYear.forEach((h, hIdx) => {
       const card = document.createElement('div');
       card.className = 'home-card';
       card.innerHTML = `
@@ -3637,27 +4171,30 @@ function startUrlDownload() {
         <div class="home-card-sub">${escapeHtml(h.artist)} · ${escapeHtml(h.sub)}</div>
       `;
       card.addEventListener('click', () => {
-        playAnyTrack({
-          title: h.title,
-          artist: h.artist,
+        activePlaylistTracks = hitsOfTheYear.map(x => ({
+          title: x.title,
+          artist: x.artist,
           album: 'Hits del Año',
-          cover: h.cover,
-          ytId: h.ytId,
+          cover: x.cover,
+          ytId: x.ytId,
           duration: 240,
           isOnline: true
-        });
+        }));
+        activePlaylistIndex = hIdx;
+        playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
       });
       homeHitsList.appendChild(card);
     });
   }
 
-  // 5. Playlists Recomendadas Automáticas
+  // 5. Playlists & Álbumes Recomendados (Abre Páginas Completas estilo Spotify)
   const autoPlaylists = [
-    { title: 'Mansion Reggaeton', sub: 'Lo más caliente del género urbano', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', search: 'reggaeton 2026 mix' },
-    { title: 'Éxitos España & Latam', sub: 'Top 50 canciones más escuchadas', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80', search: 'top canciones 2026' },
-    { title: 'Trap Argentino & Mundial', sub: 'Bhavi, Duki, Milo J, Anuel, ROA', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', search: 'trap latino mix' },
-    { title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', search: 'lofi hip hop radio chill beats' },
-    { title: 'RKT & Fiesta Fin de Semana', sub: 'L-Gante, La Joaqui, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', search: 'rkt cumbia mix 2026' }
+    { key: 'mansion', title: 'Mansión Reggaetón', sub: 'Lo más caliente del género urbano', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
+    { key: 'exitos', title: 'Éxitos España & Latam', sub: 'Top 50 canciones más escuchadas', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80' },
+    { key: 'emmanuel', title: 'Álbum: Emmanuel', sub: 'Anuel AA · Álbum Completo', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg' },
+    { key: 'trap', title: 'Trap Argentino & Mundial', sub: 'Bhavi, Duki, Milo J, Anuel, ROA', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
+    { key: 'chill', title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80' },
+    { key: 'rkt', title: 'RKT & Fiesta Fin de Semana', sub: 'L-Gante, La Joaqui, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80' }
   ];
 
   if (homePlaylistsList) {
@@ -3675,35 +4212,23 @@ function startUrlDownload() {
         <div class="home-card-title">${escapeHtml(pl.title)}</div>
         <div class="home-card-sub">${escapeHtml(pl.sub)}</div>
       `;
-      card.addEventListener('click', async () => {
-        showToast(`Cargando playlist: ${pl.title}...`);
-        const items = await fetchYouTubeItems(pl.search);
-        if (items.length) {
-          const item = items[0];
-          playAnyTrack({
-            title: item.title,
-            artist: item.author || 'YouTube',
-            cover: `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
-            ytId: item.videoId,
-            duration: item.lengthSeconds || 0,
-            isOnline: true
-          });
-        }
+      card.addEventListener('click', () => {
+        const plData = curatedCatalog[pl.key] || curatedCatalog.mansion;
+        openCuratedPlaylist(plData);
       });
       homePlaylistsList.appendChild(card);
     });
   }
 
-  // 6. Géneros & Estados de Ánimo
+  // 6. Géneros & Estados de Ánimo (Abre Páginas Curadas)
   const genres = [
-    { name: 'Reggaetón', bg: 'linear-gradient(135deg, #e50914, #b20710)', icon: '🔥', query: 'reggaeton hits' },
-    { name: 'Trap Latino', bg: 'linear-gradient(135deg, #8a2be2, #4b0082)', icon: '⚡', query: 'trap latino' },
-    { name: 'RKT & Cumbia', bg: 'linear-gradient(135deg, #ff8c00, #e52d27)', icon: '💃', query: 'rkt cumbia' },
-    { name: 'Pop & Éxitos', bg: 'linear-gradient(135deg, #1db954, #191414)', icon: '✨', query: 'pop hits' },
-    { name: 'Rock Nacional', bg: 'linear-gradient(135deg, #2b5876, #4e4376)', icon: '🎸', query: 'rock en español' },
-    { name: 'Electrónica & Tech', bg: 'linear-gradient(135deg, #00c6ff, #0072ff)', icon: '🎧', query: 'electronic dance music' },
-    { name: 'Hip-Hop', bg: 'linear-gradient(135deg, #f7971e, #ffd200)', icon: '🎤', query: 'hip hop' },
-    { name: 'Chill & Relax', bg: 'linear-gradient(135deg, #43e97b, #38f9d7)', icon: '🌙', query: 'chill music' }
+    { name: 'Reggaetón', bg: 'linear-gradient(135deg, #e50914, #b20710)', icon: '🔥', plKey: 'mansion' },
+    { name: 'Trap Latino', bg: 'linear-gradient(135deg, #8a2be2, #4b0082)', icon: '⚡', plKey: 'trap' },
+    { name: 'RKT & Cumbia', bg: 'linear-gradient(135deg, #ff8c00, #e52d27)', icon: '💃', plKey: 'rkt' },
+    { name: 'Pop & Éxitos', bg: 'linear-gradient(135deg, #1db954, #191414)', icon: '✨', plKey: 'exitos' },
+    { name: 'Álbum Emmanuel', bg: 'linear-gradient(135deg, #2b5876, #4e4376)', icon: '💿', plKey: 'emmanuel' },
+    { name: 'Chill & Relax', bg: 'linear-gradient(135deg, #43e97b, #38f9d7)', icon: '🌙', plKey: 'chill' },
+    { name: 'Podcasts', bg: 'linear-gradient(135deg, #f7971e, #ffd200)', icon: '🎙️', plKey: 'podcasts' }
   ];
 
   if (homeGenresGrid) {
@@ -3717,19 +4242,18 @@ function startUrlDownload() {
         <span class="home-genre-icon">${g.icon}</span>
       `;
       gCard.addEventListener('click', () => {
-        showToast(`Explorando género: ${g.name}...`);
-        triggerSearch(g.query);
+        const plData = curatedCatalog[g.plKey] || curatedCatalog.mansion;
+        openCuratedPlaylist(plData);
       });
       homeGenresGrid.appendChild(gCard);
     });
   }
 
-  // 7. Podcasts & Entrevistas
+  // 7. Podcasts & Entrevistas (Abre Colección)
   const podcasts = [
-    { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80', query: 'the wild project podcast' },
-    { title: 'Biri Biri', host: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80', query: 'biri biri podcast' },
-    { title: 'El Sentido De La Birra', host: 'Ricardo Moya', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=300&q=80', query: 'el sentido de la birra' },
-    { title: 'Música & Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', query: 'chente ydrach entrevista anuel' }
+    { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80' },
+    { title: 'Biri Biri Podcast', host: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80' },
+    { title: 'Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80' }
   ];
 
   if (homePodcastsList) {
@@ -3747,20 +4271,8 @@ function startUrlDownload() {
         <div class="home-card-title">${escapeHtml(p.title)}</div>
         <div class="home-card-sub">${escapeHtml(p.host)}</div>
       `;
-      card.addEventListener('click', async () => {
-        showToast(`Buscando episodio de ${p.title}...`);
-        const items = await fetchYouTubeItems(p.query);
-        if (items.length) {
-          const item = items[0];
-          playAnyTrack({
-            title: item.title,
-            artist: p.host,
-            cover: `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
-            ytId: item.videoId,
-            duration: item.lengthSeconds || 0,
-            isOnline: true
-          });
-        }
+      card.addEventListener('click', () => {
+        openCuratedPlaylist(curatedCatalog.podcasts);
       });
       homePodcastsList.appendChild(card);
     });
