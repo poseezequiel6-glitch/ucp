@@ -2900,13 +2900,11 @@ let miniDismissed      = false;
 
 
 function updateMiniplayer() {
-  if (currentIndex < 0 || !filteredLib[currentIndex]) return;
-  const track = filteredLib[currentIndex];
+  const track = (currentIndex >= 0 && filteredLib[currentIndex]) ? filteredLib[currentIndex] : currentActiveTrack;
+  if (!track) return;
 
- 
-  miniTitle.textContent  = track.title;
-  miniArtist.textContent = track.artist;
-
+  miniTitle.textContent  = track.title || 'Sin título';
+  miniArtist.textContent = track.artist || '—';
 
   if (track.cover) {
     miniCover.innerHTML = `<img src="${track.cover}" alt="cover" />`;
@@ -2914,9 +2912,9 @@ function updateMiniplayer() {
     miniCover.innerHTML = `<svg viewBox="0 0 42 42" fill="none"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>`;
   }
 
-  
-  miniIconPlay.style.display  = isPlaying ? 'none' : 'block';
-  miniIconPause.style.display = isPlaying ? 'block' : 'none';
+  const activePlaying = isPlaying || (isYtActive && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === 1);
+  miniIconPlay.style.display  = activePlaying ? 'none' : 'block';
+  miniIconPause.style.display = activePlaying ? 'block' : 'none';
 }
 
 
@@ -3436,24 +3434,38 @@ function startUrlDownload() {
   /* ── Set initial nav state ── */
   setNavActive(mobNavPlayer);
 
+  /* ── Handle back button to close drawers ── */
+  window.addEventListener('popstate', () => {
+    if (searchOverlayOpen) closeSearchOverlay();
+    else if (activeDrawer) closeDrawer();
+  });
+
+})();
+
 /* ═══════════════════════════════════════════════
    SPOTIFY HOME VIEW — Curaduría, Éxitos, Géneros & Podcasts
    ═══════════════════════════════════════════════ */
 
 (function initHome() {
   const homeGreeting     = document.getElementById('homeGreeting');
+  const homeHero         = document.getElementById('homeHero');
   const homeQuickGrid    = document.getElementById('homeQuickGrid');
+  const homeRecentSection= document.getElementById('homeRecentSection');
+  const homeRecentList   = document.getElementById('homeRecentList');
   const homeHitsList     = document.getElementById('homeHitsList');
   const homePlaylistsList= document.getElementById('homePlaylistsList');
   const homeGenresGrid   = document.getElementById('homeGenresGrid');
   const homePodcastsList = document.getElementById('homePodcastsList');
   const homeSettingsBtn  = document.getElementById('homeSettingsBtn');
+  const linkMoreHits     = document.getElementById('linkMoreHits');
+  const linkMorePlaylists= document.getElementById('linkMorePlaylists');
+  const linkMorePodcasts = document.getElementById('linkMorePodcasts');
 
   if (homeSettingsBtn && settingsBtn) {
     homeSettingsBtn.addEventListener('click', () => settingsBtn.click());
   }
 
-  // Saludo según la hora
+  // Saludo según la hora del día
   function updateGreeting() {
     if (!homeGreeting) return;
     const hour = new Date().getHours();
@@ -3463,12 +3475,77 @@ function startUrlDownload() {
   }
   updateGreeting();
 
-  // 1. Accesos Rápidos (Quick Picks)
+  // Helper para disparar búsquedas tanto en desktop como en mobile
+  function triggerSearch(query) {
+    if (window.innerWidth <= 680) {
+      const mobSearchInput = document.getElementById('mobSearchInput');
+      const mobNavSearch   = document.getElementById('mobNavSearch');
+      if (mobNavSearch && mobSearchInput) {
+        mobNavSearch.click();
+        mobSearchInput.value = query;
+        mobSearchInput.dispatchEvent(new Event('input'));
+      }
+    } else {
+      if (searchInput) {
+        searchInput.value = query;
+        showDropdown();
+        searchInput.dispatchEvent(new Event('input'));
+        searchInput.focus();
+      }
+    }
+  }
+
+  // Enlaces "Ver más"
+  if (linkMoreHits) {
+    linkMoreHits.addEventListener('click', () => triggerSearch('exitos 2026 reggaeton trap'));
+  }
+  if (linkMorePlaylists) {
+    linkMorePlaylists.addEventListener('click', () => triggerSearch('top 50 canciones 2026'));
+  }
+  if (linkMorePodcasts) {
+    linkMorePodcasts.addEventListener('click', () => triggerSearch('podcast entrevistas musica'));
+  }
+
+  // 1. Destacado Principal / Hero Banner estilo Spotify
+  if (homeHero) {
+    const heroTrack = {
+      title: 'Vamo a Vel',
+      artist: 'ROA, Anuel AA',
+      album: 'Éxitos 2026',
+      cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg',
+      ytId: 'HdpJEauH7cY',
+      duration: 220
+    };
+
+    homeHero.innerHTML = `
+      <img class="home-hero-img" src="${heroTrack.cover}" alt="${heroTrack.title}" onerror="this.src='https://i.ytimg.com/vi/${heroTrack.ytId}/default.jpg'" />
+      <div class="home-hero-overlay"></div>
+      <div class="home-hero-content">
+        <span class="home-hero-badge">★ TENDENCIA Nº 1 EN LATAM</span>
+        <h2 class="home-hero-title">${escapeHtml(heroTrack.title)}</h2>
+        <p class="home-hero-artist">${escapeHtml(heroTrack.artist)} · Éxito Urbano del Año</p>
+      </div>
+      <button class="home-hero-play" title="Reproducir ahora" aria-label="Reproducir">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+      </button>
+    `;
+
+    homeHero.addEventListener('click', () => {
+      playAnyTrack({
+        ...heroTrack,
+        isOnline: true
+      });
+    });
+  }
+
+  // 2. Accesos Rápidos (Quick Picks) — 6 tracks estilo Spotify
   const quickPicks = [
     { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
     { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk' },
     { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw' },
-    { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw' }
+    { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw' },
+    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
+    { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/fS9c7Lw973k/hqdefault.jpg', ytId: 'fS9c7Lw973k' }
   ];
 
   if (homeQuickGrid) {
@@ -3479,12 +3556,15 @@ function startUrlDownload() {
       card.innerHTML = `
         <img class="home-quick-cover" src="${p.cover}" alt="cover" onerror="this.src='https://i.ytimg.com/vi/${p.ytId}/default.jpg'" />
         <span class="home-quick-name">${escapeHtml(p.title)}</span>
+        <button class="home-quick-play" title="Reproducir">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+        </button>
       `;
       card.addEventListener('click', () => {
         playAnyTrack({
           title: p.title,
           artist: p.artist,
-          album: 'Home Hits',
+          album: 'Quick Picks',
           cover: p.cover,
           ytId: p.ytId,
           duration: 240,
@@ -3495,13 +3575,50 @@ function startUrlDownload() {
     });
   }
 
-  // 2. Éxitos del Año & Tendencias
+  // 3. Escuchados Recientemente (si hay canciones en biblioteca o recientes)
+  window.refreshHomeRecent = function() {
+    if (!homeRecentSection || !homeRecentList) return;
+    if (!Array.isArray(library) || library.length === 0) {
+      homeRecentSection.style.display = 'none';
+      return;
+    }
+    homeRecentSection.style.display = 'flex';
+    homeRecentList.innerHTML = '';
+    const slice = library.slice(0, 8);
+    slice.forEach((t, idx) => {
+      const card = document.createElement('div');
+      card.className = 'home-card';
+      const coverHtml = t.cover
+        ? `<img src="${t.cover}" alt="cover" />`
+        : `<svg viewBox="0 0 42 42" fill="none" style="width:100%;height:100%;"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>`;
+
+      card.innerHTML = `
+        <div class="home-card-cover-wrap">
+          ${coverHtml}
+          <div class="home-card-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
+          </div>
+        </div>
+        <div class="home-card-title">${escapeHtml(t.title || 'Canción')}</div>
+        <div class="home-card-sub">${escapeHtml(t.artist || 'Desconocido')}</div>
+      `;
+      card.addEventListener('click', () => {
+        loadTrack(idx, true);
+      });
+      homeRecentList.appendChild(card);
+    });
+  };
+  window.refreshHomeRecent();
+
+  // 4. Éxitos del Año & Tendencias
   const hitsOfTheYear = [
     { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Éxito Mundial' },
     { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', sub: 'Tendencia Top 50' },
     { title: 'Mejor Que Yo', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', sub: 'Hit Latino' },
     { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', sub: 'Clásico Urbano' },
-    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Trap Latino' }
+    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Trap Latino' },
+    { title: 'Medallo', artist: 'Blessd, Justin Quiles, Lenny Tavarez', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', sub: 'Top Colombia' },
+    { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', sub: 'Reggaetón Hit' }
   ];
 
   if (homeHitsList) {
@@ -3534,12 +3651,13 @@ function startUrlDownload() {
     });
   }
 
-  // 3. Playlists Recomendadas Automáticas
+  // 5. Playlists Recomendadas Automáticas
   const autoPlaylists = [
     { title: 'Mansion Reggaeton', sub: 'Lo más caliente del género urbano', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', search: 'reggaeton 2026 mix' },
     { title: 'Éxitos España & Latam', sub: 'Top 50 canciones más escuchadas', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80', search: 'top canciones 2026' },
     { title: 'Trap Argentino & Mundial', sub: 'Bhavi, Duki, Milo J, Anuel, ROA', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', search: 'trap latino mix' },
-    { title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', search: 'lofi hip hop radio chill beats' }
+    { title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', search: 'lofi hip hop radio chill beats' },
+    { title: 'RKT & Fiesta Fin de Semana', sub: 'L-Gante, La Joaqui, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', search: 'rkt cumbia mix 2026' }
   ];
 
   if (homePlaylistsList) {
@@ -3576,7 +3694,7 @@ function startUrlDownload() {
     });
   }
 
-  // 4. Géneros & Estados de Ánimo
+  // 6. Géneros & Estados de Ánimo
   const genres = [
     { name: 'Reggaetón', bg: 'linear-gradient(135deg, #e50914, #b20710)', icon: '🔥', query: 'reggaeton hits' },
     { name: 'Trap Latino', bg: 'linear-gradient(135deg, #8a2be2, #4b0082)', icon: '⚡', query: 'trap latino' },
@@ -3595,35 +3713,23 @@ function startUrlDownload() {
       gCard.className = 'home-genre-card';
       gCard.style.background = g.bg;
       gCard.innerHTML = `
-        <span>${escapeHtml(g.name)}</span>
+        <span class="home-genre-name">${escapeHtml(g.name)}</span>
         <span class="home-genre-icon">${g.icon}</span>
       `;
-      gCard.addEventListener('click', async () => {
-        showToast(`Buscando género: ${g.name}...`);
-        if (window.innerWidth <= 680) {
-          const mobSearchInput = document.getElementById('mobSearchInput');
-          const mobNavSearch   = document.getElementById('mobNavSearch');
-          if (mobNavSearch && mobSearchInput) {
-            mobNavSearch.click();
-            mobSearchInput.value = g.query;
-            mobSearchInput.dispatchEvent(new Event('input'));
-          }
-        } else {
-          searchInput.value = g.query;
-          showDropdown();
-          searchInput.dispatchEvent(new Event('input'));
-        }
+      gCard.addEventListener('click', () => {
+        showToast(`Explorando género: ${g.name}...`);
+        triggerSearch(g.query);
       });
       homeGenresGrid.appendChild(gCard);
     });
   }
 
-  // 5. Podcasts & Entrevistas
+  // 7. Podcasts & Entrevistas
   const podcasts = [
     { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80', query: 'the wild project podcast' },
     { title: 'Biri Biri', host: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80', query: 'biri biri podcast' },
     { title: 'El Sentido De La Birra', host: 'Ricardo Moya', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=300&q=80', query: 'el sentido de la birra' },
-    { title: 'Música & Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', query: 'chente ydach entrevista anuel' }
+    { title: 'Música & Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', query: 'chente ydrach entrevista anuel' }
   ];
 
   if (homePodcastsList) {

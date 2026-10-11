@@ -231,206 +231,287 @@ body { background: var(--bg-base); color: var(--text-light); font-family: var(--
 #viewHome {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  animation: fadeIn 0.2s ease;
+  gap: 0;
+  animation: fadeIn 0.25s ease;
+  padding-bottom: 24px;
 }
 
+/* Header sticky con blur */
 .home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0 4px;
+  padding: 4px 0 16px;
+  position: sticky;
+  top: -24px;
+  z-index: 10;
+  background: linear-gradient(to bottom, var(--bg-panel) 80%, transparent 100%);
 }
+.home-greeting-wrap { display: flex; flex-direction: column; gap: 2px; }
 .home-greeting {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
+  font-size: 1.75rem;
+  font-weight: 900;
   color: var(--text-white);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 .home-subgreeting {
   font-size: 0.78rem;
-  color: var(--text-dim);
-  margin-top: 2px;
+  color: var(--text-mid);
 }
+.home-header-actions { display: flex; align-items: center; gap: 8px; }
+.home-header-actions .settings-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: none;
+  color: var(--text-mid); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s, color 0.2s;
+}
+.home-header-actions .settings-btn svg { width: 16px; height: 16px; }
+.home-header-actions .settings-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-white); }
 
-/* Quick picks grid (2x2 o 2x3 cards estilo Spotify) */
+/* ── Hero / Featured Banner ── */
+.home-hero {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  height: 220px;
+  cursor: pointer;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+  transition: transform 0.25s, filter 0.25s;
+}
+.home-hero:hover { transform: scale(1.01); filter: brightness(1.08); }
+.home-hero-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.home-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 55%, transparent 100%);
+}
+.home-hero-content {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 20px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.home-hero-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #1db954; color: #000;
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em;
+  padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
+  width: fit-content;
+}
+.home-hero-title {
+  font-family: var(--font-display);
+  font-size: 1.55rem; font-weight: 900;
+  color: #fff; letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.home-hero-artist {
+  font-size: 0.8rem; color: rgba(255,255,255,0.75);
+}
+.home-hero-play {
+  position: absolute; right: 18px; bottom: 18px;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: #1db954; border: none; color: #000;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(29,185,84,0.5);
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.home-hero-play:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(29,185,84,0.7); }
+.home-hero-play svg { width: 20px; height: 20px; margin-left: 2px; }
+
+/* ── Quick Picks grid ── */
+.home-quick-section { margin-bottom: 28px; }
 .home-quick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
 }
 .home-quick-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  gap: 0;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: background 0.18s;
   height: 56px;
+  position: relative;
 }
-.home-quick-card:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
-}
+.home-quick-card:hover { background: rgba(255,255,255,0.14); }
+.home-quick-card:active { background: rgba(255,255,255,0.2); }
 .home-quick-cover {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  flex-shrink: 0;
+  width: 56px; height: 56px;
+  object-fit: cover; flex-shrink: 0;
 }
 .home-quick-name {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.8rem; font-weight: 700;
   color: var(--text-white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 0 12px;
+  flex: 1;
 }
+.home-quick-play {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #1db954; color: #000;
+  border: none; display: flex; align-items: center; justify-content: center;
+  margin-right: 10px; flex-shrink: 0;
+  opacity: 0; transform: scale(0.85);
+  transition: opacity 0.18s, transform 0.18s; cursor: pointer;
+}
+.home-quick-card:hover .home-quick-play { opacity: 1; transform: scale(1); }
+.home-quick-play svg { width: 14px; height: 14px; margin-left: 2px; }
 
-/* Secciones generales del Home */
+/* ── Section headers with "ver todo" ── */
 .home-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 .home-section-head {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: flex-end;
+  justify-content: space-between;
 }
+.home-section-head-left { display: flex; flex-direction: column; gap: 2px; }
 .home-section-title {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-white);
-  letter-spacing: -0.01em;
+  font-size: 1.2rem; font-weight: 800;
+  color: var(--text-white); letter-spacing: -0.02em;
 }
-.home-section-subtitle {
-  font-size: 0.72rem;
-  color: var(--text-mid);
+.home-section-subtitle { font-size: 0.72rem; color: var(--text-mid); }
+.home-section-link {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--text-mid); text-transform: uppercase;
+  cursor: pointer; transition: color 0.18s;
+  white-space: nowrap; padding-bottom: 2px;
 }
+.home-section-link:hover { color: var(--text-white); }
 
-/* Scroll horizontal para tarjetas */
+/* ── Horizontal scroll of cards ── */
 .home-cards-scroll {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
 }
-.home-cards-scroll::-webkit-scrollbar { height: 4px; }
+.home-cards-scroll::-webkit-scrollbar { height: 3px; }
 .home-cards-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
-/* Tarjeta de track / playlist / podcast */
+/* ── Card ── */
 .home-card {
-  width: 150px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 12px;
+  width: 170px; flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px; padding: 12px;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: background 0.2s, transform 0.2s;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: background 0.2s, transform 0.22s;
   scroll-snap-align: start;
   position: relative;
 }
-.home-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-4px);
-}
+.home-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-4px); }
+.home-card:active { transform: translateY(-1px); background: rgba(255,255,255,0.14); }
+
 .home-card-cover-wrap {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-  background: #1e1e1e;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  width: 100%; aspect-ratio: 1;
+  border-radius: 8px; overflow: hidden;
+  position: relative; background: #1e1e1e;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 .home-card-cover-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 0.3s;
 }
+.home-card:hover .home-card-cover-wrap img { transform: scale(1.04); }
+
 .home-card-play-btn {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #1db954;
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transform: translateY(8px);
+  position: absolute; right: 8px; bottom: 8px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #1db954; color: #000;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(29,185,84,0.5);
+  opacity: 0; transform: translateY(10px);
   transition: opacity 0.2s, transform 0.2s;
+  border: none; cursor: pointer;
 }
-.home-card:hover .home-card-play-btn {
-  opacity: 1;
-  transform: translateY(0);
-}
+.home-card:hover .home-card-play-btn { opacity: 1; transform: translateY(0); }
+
 .home-card-title {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.82rem; font-weight: 700;
   color: var(--text-white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .home-card-sub {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.7rem; color: var(--text-mid);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-top: -6px;
+  line-height: 1.4;
+  white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 
-/* Grid de géneros con degradados estilo Spotify */
+/* ── Shimmer skeleton loader ── */
+.home-skeleton-card {
+  width: 170px; flex-shrink: 0;
+  border-radius: 12px; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.home-skeleton-img {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.home-skeleton-line {
+  height: 10px; border-radius: 5px;
+  background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.home-skeleton-line.short { width: 65%; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ── Genres grid ── */
 .home-genres-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
 .home-genre-card {
-  height: 80px;
-  border-radius: 10px;
-  padding: 12px;
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.95rem;
+  height: 90px; border-radius: 12px; padding: 14px 12px;
+  color: #fff; font-weight: 800; font-size: 1rem;
   font-family: var(--font-display);
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
   transition: transform 0.2s, filter 0.2s;
 }
-.home-genre-card:hover {
-  transform: scale(1.03);
-  filter: brightness(1.1);
+.home-genre-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.15);
+  opacity: 0; transition: opacity 0.2s;
 }
+.home-genre-card:hover { transform: scale(1.04); filter: brightness(1.12); }
+.home-genre-card:hover::after { opacity: 1; }
+.home-genre-card:active { transform: scale(0.97); }
+.home-genre-name { position: relative; z-index: 1; line-height: 1.2; }
 .home-genre-icon {
-  align-self: flex-end;
-  font-size: 1.4rem;
-  opacity: 0.85;
+  align-self: flex-end; font-size: 1.8rem; opacity: 0.9;
+  position: relative; z-index: 1;
+  transform: rotate(-10deg);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
 }
 
 .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
@@ -1372,6 +1453,105 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.3); box-sha
   .miniplayer-cover { width: 40px !important; height: 40px !important; }
   .miniplayer-play { width: 38px !important; height: 38px !important; }
   .miniplayer-close { display: none; }
+
+  /* ── Home view en mobile (estilo Spotify app) ── */
+  #viewHome {
+    gap: 0;
+    padding-bottom: 20px;
+  }
+  .home-header {
+    padding: 0 0 12px;
+    top: -16px;
+  }
+  .home-greeting {
+    font-size: 1.45rem;
+  }
+  .home-subgreeting {
+    font-size: 0.72rem;
+  }
+  .home-hero {
+    height: 180px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+  }
+  .home-hero-content {
+    padding: 14px 14px 12px;
+  }
+  .home-hero-title {
+    font-size: 1.25rem;
+  }
+  .home-hero-play {
+    width: 42px;
+    height: 42px;
+    right: 14px;
+    bottom: 14px;
+  }
+  .home-hero-play svg {
+    width: 17px;
+    height: 17px;
+  }
+  .home-quick-section {
+    margin-bottom: 22px;
+  }
+  .home-quick-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+  .home-quick-card {
+    height: 50px;
+    border-radius: 6px;
+  }
+  .home-quick-cover {
+    width: 50px;
+    height: 50px;
+  }
+  .home-quick-name {
+    font-size: 0.75rem;
+    padding: 0 8px;
+  }
+  .home-quick-play {
+    display: none;
+  }
+  .home-section {
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .home-section-title {
+    font-size: 1.05rem;
+  }
+  .home-card {
+    width: 135px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .home-card-cover-wrap {
+    border-radius: 6px;
+  }
+  .home-card-play-btn {
+    opacity: 0.95;
+    transform: translateY(0);
+    width: 34px;
+    height: 34px;
+    right: 6px;
+    bottom: 6px;
+  }
+  .home-card-play-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .home-genres-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .home-genre-card {
+    height: 74px;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+  }
+  .home-genre-icon {
+    font-size: 1.5rem;
+  }
 
 }
 
