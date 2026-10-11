@@ -119,7 +119,10 @@ async function clearHandleFromDB(){ const db = await openDB(); return new Promis
 const supportsFS = 'showDirectoryPicker' in window;
 
 async function pickFolder() {
-  if (!supportsFS) { alert('Usá Chrome o Edge para esta función.'); return; }
+  if (!supportsFS) {
+    fileInput.click();
+    return;
+  }
   try {
     const handle = await window.showDirectoryPicker({ mode: 'read' });
     folderHandle = handle;
@@ -429,6 +432,7 @@ function renderPlaylistSidebar() {
     const coverSrc = tracks.find(t=>t.cover)?.cover;
     const li = document.createElement('li');
     li.className = 'playlist-item' + (pl.id===activePlaylistId?' is-active':'');
+    li.dataset.plid = pl.id;
     li.innerHTML = `
       <div class="playlist-item-cover">
         ${coverSrc ? `<img src="${coverSrc}" />` : `<svg viewBox="0 0 36 36" fill="none"><rect width="36" height="36" fill="#1e1e1e"/><line x1="10" y1="13" x2="26" y2="13" stroke="#444" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="18" x2="26" y2="18" stroke="#444" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="23" x2="20" y2="23" stroke="#444" stroke-width="1.5" stroke-linecap="round"/></svg>`}
@@ -440,6 +444,7 @@ function renderPlaylistSidebar() {
     li.addEventListener('click', () => openPlaylistView(pl.id));
     playlistList.appendChild(li);
   });
+  if (typeof window._mobDrawerRefresh === 'function') window._mobDrawerRefresh();
 }
 
 function switchView(target) {
@@ -623,7 +628,7 @@ function saveTrackToUserPlaylist(track, plId) {
       isOnline: true
     };
     library.push(existing);
-    saveLocalMetadata();
+    saveMetadata();
   }
 
   if (pl.trackIds.includes(existing.id)) {
@@ -1032,6 +1037,7 @@ function loadTrack(idx,autoPlay=true){
   onTrackChangeLyrics(track);
   if(autoPlay)playAudio();
   updateMiniplayer();
+  if(typeof updateMediaSession==='function')updateMediaSession(track);
 }
 
 function updateCoverArt(cover){
@@ -1245,6 +1251,82 @@ function togglePlayPause() {
   else playAudio();
 }
 
+/* ── MediaSession & Reproducción en Segundo Plano (Mobile & Lockscreen) ── */
+const SILENT_AUDIO = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+let silentAudioPlaying = false;
+
+function startSilentBackgroundAudio() {
+  if (silentAudioPlaying) return;
+  try {
+    audio.src = SILENT_AUDIO;
+    audio.loop = true;
+    audio.play().then(() => { silentAudioPlaying = true; }).catch(() => {});
+  } catch(e) {}
+}
+
+function stopSilentBackgroundAudio() {
+  if (!silentAudioPlaying) return;
+  silentAudioPlaying = false;
+  audio.pause();
+  audio.loop = false;
+}
+
+function updateMediaSession(track) {
+  if (!('mediaSession' in navigator) || !track) return;
+  try {
+    const artwork = [];
+    if (track.cover) {
+      artwork.push({ src: track.cover, sizes: '512x512', type: 'image/jpeg' });
+    }
+    artwork.push(
+      { src: 'icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { src: 'icon-512.svg', sizes: '512x512', type: 'image/svg+xml' }
+    );
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Canción',
+      artist: track.artist || 'Artista desconocido',
+      album: track.album || 'WAVE Music',
+      artwork
+    });
+
+    const isCurrentlyPlaying = isPlaying || (isYtActive && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === 1);
+    navigator.mediaSession.playbackState = isCurrentlyPlaying ? 'playing' : 'paused';
+
+    navigator.mediaSession.setActionHandler('play', () => { togglePlayPause(); });
+    navigator.mediaSession.setActionHandler('pause', () => { togglePlayPause(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
+    navigator.mediaSession.setActionHandler('seekto', (d) => {
+      if (d.seekTime != null) {
+        if (isYtActive && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+          ytPlayer.seekTo(d.seekTime, true);
+        } else if (audio.duration) {
+          audio.currentTime = d.seekTime;
+        }
+      }
+    });
+  } catch(err) {
+    console.warn('Error en MediaSession:', err);
+  }
+}
+
+function updateMediaSessionState(playingNow) {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = playingNow ? 'playing' : 'paused';
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && isYtActive && isPlaying && ytPlayer) {
+    setTimeout(() => {
+      if (isPlaying && ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        ytPlayer.playVideo();
+      }
+    }, 100);
+  }
+});
+
 function updatePlayUI(){
   const playingNow = isPlaying || (isYtActive && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === 1);
   iconPlay.style.display  = playingNow ? 'none' : 'block';
@@ -1255,6 +1337,8 @@ function updatePlayUI(){
     item.classList.toggle('is-paused', idx===currentIndex && !playingNow);
   });
   if (typeof updateMiniplayer === 'function') updateMiniplayer();
+  if (typeof updateMediaSessionState === 'function') updateMediaSessionState(playingNow);
+  if (!playingNow && isYtActive) stopSilentBackgroundAudio();
 }
 
 btnPlay.addEventListener('click', togglePlayPause);
@@ -1974,11 +2058,13 @@ function onYtStateChange(e) {
     updatePlayUI();
     updateMiniplayer();
     startYtTimer();
+    if (typeof startSilentBackgroundAudio === 'function') startSilentBackgroundAudio();
   } else if (e.data === YT.PlayerState.PAUSED) {
     isPlaying = false;
     updatePlayUI();
     updateMiniplayer();
     stopYtTimer();
+    if (typeof stopSilentBackgroundAudio === 'function') stopSilentBackgroundAudio();
   } else if (e.data === YT.PlayerState.ENDED) {
     isPlaying = false;
     updatePlayUI();
@@ -2427,6 +2513,7 @@ function loadOnlineTrack(track) {
   updateMiniplayer();
   switchView('player');
   onTrackChangeLyrics(track);
+  if (typeof updateMediaSession === 'function') updateMediaSession(track);
 
   const startYt = () => {
     try {
@@ -2448,6 +2535,8 @@ function loadOnlineTrack(track) {
         updatePlayUI();
         updateMiniplayer();
         startYtTimer();
+        if (typeof startSilentBackgroundAudio === 'function') startSilentBackgroundAudio();
+        if (typeof updateMediaSession === 'function') updateMediaSession(track);
       }
     } catch (e) {
       console.warn('Error iniciando YouTube player:', e);
@@ -4281,4 +4370,66 @@ function startUrlDownload() {
   // Vista inicial por defecto: Home
   switchView('home');
 })();
+
+/* ═══════════════════════════════════════════════
+   PWA & INSTALACIÓN EN PANTALLA DE INICIO (A2HS)
+   ═══════════════════════════════════════════════ */
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('✓ Service Worker de WAVE activo:', reg.scope);
+    }).catch(err => {
+      console.warn('Error registrando Service Worker:', err);
+    });
+  });
+}
+
+let deferredPwaPrompt = null;
+const homeInstallBtn = document.getElementById('homeInstallBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  if (homeInstallBtn) homeInstallBtn.style.display = 'inline-flex';
+});
+
+if (homeInstallBtn) {
+  const isMobileDev = window.innerWidth <= 680 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobileDev && !window.matchMedia('(display-mode: standalone)').matches) {
+    homeInstallBtn.style.display = 'inline-flex';
+  }
+
+  homeInstallBtn.addEventListener('click', async () => {
+    if (deferredPwaPrompt) {
+      deferredPwaPrompt.prompt();
+      const choice = await deferredPwaPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        showToast('✓ WAVE se instaló en tu pantalla de inicio');
+        homeInstallBtn.style.display = 'none';
+      }
+      deferredPwaPrompt = null;
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        alert('📲 Para anclar WAVE a tu iPhone:\n1. Tocá el botón "Compartir" (flecha hacia arriba en Safari).\n2. Elegí "Añadir a pantalla de inicio".\n3. ¡Listo! Ya la tenés como app independiente.');
+      } else {
+        alert('📲 Para anclar WAVE a tu teléfono:\n1. Tocá el menú del navegador (⋮ arriba a la derecha).\n2. Elegí "Instalar aplicación" o "Añadir a pantalla principal".\n3. ¡Listo! Se abrirá a pantalla completa como una app nativa.');
+      }
+    }
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  if (homeInstallBtn) homeInstallBtn.style.display = 'none';
+  showToast('✓ WAVE ya está instalada en tu teléfono');
+});
+
+window.addEventListener('offline', () => {
+  showToast('Modo sin conexión · Podés reproducir tu música local');
+});
+window.addEventListener('online', () => {
+  showToast('Conexión reestablecida');
+});
+
 

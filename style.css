@@ -268,6 +268,29 @@ body { background: var(--bg-base); color: var(--text-light); font-family: var(--
 }
 .home-header-actions .settings-btn svg { width: 16px; height: 16px; }
 .home-header-actions .settings-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-white); }
+.home-install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(29, 185, 84, 0.14);
+  border: 1px solid rgba(29, 185, 84, 0.45);
+  color: #1ed760;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  white-space: nowrap;
+}
+.home-install-btn:hover {
+  background: #1db954;
+  color: #000;
+  border-color: #1db954;
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(29, 185, 84, 0.4);
+}
 
 /* ── Hero / Featured Banner ── */
 .home-hero {
