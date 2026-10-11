@@ -21,15 +21,15 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-
+ 
   <canvas id="ambientBg"></canvas>
   <div class="bg-noise"></div>
-
+ 
   <div class="app-shell">
-
-   
+ 
+    
     <aside class="sidebar">
-
+ 
       
       <div class="logo">
         <svg viewBox="0 0 28 28" fill="none" class="logo-icon">
@@ -54,7 +54,7 @@
         <button class="tab-btn" id="tabPlaylists">Playlists</button>
       </div>
 
-     
+      
       <div class="tab-panel active" id="panelLibrary">
 
         <div class="library-header">
@@ -136,27 +136,24 @@
           </div>
           <div class="home-header-actions">
             <button class="home-install-btn" id="homeInstallBtn" title="Anclar / Instalar en tu teléfono">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
               <span>Instalar App</span>
             </button>
             <button class="settings-btn" id="homeSettingsBtn" title="Ajustes">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/>
               </svg>
             </button>
           </div>
         </header>
 
-        <!-- Destacado Principal / Hero Banner estilo Spotify -->
         <div class="home-hero" id="homeHero"></div>
 
-        <!-- Accesos rápidos superiores (Top Quick Picks) -->
         <div class="home-quick-section">
           <div class="home-quick-grid" id="homeQuickGrid"></div>
         </div>
 
-        <!-- Escuchados recientemente (si hay historial o biblioteca) -->
         <section class="home-section" id="homeRecentSection" style="display:none">
           <div class="home-section-head">
             <div class="home-section-head-left">
@@ -167,7 +164,6 @@
           <div class="home-cards-scroll" id="homeRecentList"></div>
         </section>
 
-        <!-- Secciones estilo Spotify -->
         <section class="home-section">
           <div class="home-section-head">
             <div class="home-section-head-left">
@@ -212,9 +208,7 @@
         </section>
       </div>
 
-      <!-- PANTALLA DEL REPRODUCTOR (Aparece al reproducir o al tocar la barra) -->
       <div id="viewPlayer" style="display:none">
-
         <header class="top-bar">
           <div class="top-left">
             <button class="back-btn" id="playerCloseBtn" title="Volver al inicio" style="margin-right:8px;">
@@ -229,59 +223,55 @@
           </div>
           <span class="queue-info" id="queueInfo">—</span>
           <button class="eq-btn" id="eqBtn" title="Ecualizador">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
-    <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
-    <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
-    <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>
-    <line x1="17" y1="16" x2="23" y2="16"/>
-  </svg>
-</button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>
+              <line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </button>
           <button class="settings-btn" id="settingsBtn" title="Ajustes">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/>
             </svg>
           </button>
         </header>
 
-        
-         
-         
-      <div class="eq-panel" id="eqPanel" style="display:none">
-  <div class="eq-header">
-    <div class="eq-header-left">
-      <span class="eq-title">Ecualizador</span>
-      <label class="eq-bypass-label">
-        <input type="checkbox" id="eqEnabled" checked style="accent-color:#fff;width:13px;height:13px"/>
-        Activo
-      </label>
-    </div>
-    <button class="eq-close" id="eqClose">✕</button>
-  </div>
-  <div class="eq-presets">
-    <button class="eq-preset-btn is-active" data-preset="flat">Plano</button>
-    <button class="eq-preset-btn" data-preset="bass">Bass Boost</button>
-    <button class="eq-preset-btn" data-preset="vocal">Vocal</button>
-    <button class="eq-preset-btn" data-preset="treble">Agudos</button>
-    <button class="eq-preset-btn" data-preset="electronic">Electrónica</button>
-    <button class="eq-preset-btn" data-preset="acoustic">Acústica</button>
-  </div>
-  <div class="eq-bands" id="eqBands"></div>
-  <div class="eq-footer">
-    <span class="eq-footer-label">Preamp: <strong id="eqPreampLabel">0 dB</strong></span>
-    <input type="range" id="eqPreamp" min="-12" max="12" value="0" step="0.5" style="flex:1;height:3px;" />
-    <button class="eq-reset-btn" id="eqReset">Resetear</button>
-  </div>
-</div>
+        <div class="eq-panel" id="eqPanel" style="display:none">
+          <div class="eq-header">
+            <div class="eq-header-left">
+              <span class="eq-title">Ecualizador</span>
+              <label class="eq-bypass-label">
+                <input type="checkbox" id="eqEnabled" checked style="accent-color:#fff;width:13px;height:13px"/>
+                Activo
+              </label>
+            </div>
+            <button class="eq-close" id="eqClose">✕</button>
+          </div>
+          <div class="eq-presets">
+            <button class="eq-preset-btn is-active" data-preset="flat">Plano</button>
+            <button class="eq-preset-btn" data-preset="bass">Bass Boost</button>
+            <button class="eq-preset-btn" data-preset="vocal">Vocal</button>
+            <button class="eq-preset-btn" data-preset="treble">Agudos</button>
+            <button class="eq-preset-btn" data-preset="electronic">Electrónica</button>
+            <button class="eq-preset-btn" data-preset="acoustic">Acústica</button>
+          </div>
+          <div class="eq-bands" id="eqBands"></div>
+          <div class="eq-footer">
+            <span class="eq-footer-label">Preamp: <strong id="eqPreampLabel">0 dB</strong></span>
+            <input type="range" id="eqPreamp" min="-12" max="12" value="0" step="0.5" style="flex:1;height:3px;" />
+            <button class="eq-reset-btn" id="eqReset">Resetear</button>
+          </div>
+        </div>
+
         <div class="settings-panel" id="settingsPanel" style="display:none">
           <div class="settings-header">
             <span class="settings-title">Ajustes de reproducción</span>
             <button class="settings-close" id="settingsClose">✕</button>
           </div>
 
-
-          <!-- Tema de color -->
           <div class="settings-section">
             <div class="settings-row">
               <div class="settings-label-group">
@@ -291,51 +281,28 @@
             </div>
             <div class="theme-options" id="themeOptions">
               <div class="theme-opt is-active" data-theme="dark">
-                <div class="theme-swatch">
-                  <div class="theme-swatch-inner">
-                    <div style="background:#111"></div><div style="background:#161616"></div>
-                    <div style="background:#1e1e1e"></div><div style="background:#0d0d0d"></div>
-                  </div>
-                </div>
+                <div class="theme-swatch"><div class="theme-swatch-inner"><div style="background:#111"></div><div style="background:#161616"></div><div style="background:#1e1e1e"></div><div style="background:#0d0d0d"></div></div></div>
                 <span class="theme-name">Oscuro</span>
               </div>
               <div class="theme-opt" data-theme="sepia">
-                <div class="theme-swatch">
-                  <div class="theme-swatch-inner">
-                    <div style="background:#13100c"></div><div style="background:#181410"></div>
-                    <div style="background:#221e18"></div><div style="background:#0e0b08"></div>
-                  </div>
-                </div>
+                <div class="theme-swatch"><div class="theme-swatch-inner"><div style="background:#13100c"></div><div style="background:#181410"></div><div style="background:#221e18"></div><div style="background:#0e0b08"></div></div></div>
                 <span class="theme-name">Sepia</span>
               </div>
               <div class="theme-opt" data-theme="midnight">
-                <div class="theme-swatch">
-                  <div class="theme-swatch-inner">
-                    <div style="background:#080c18"></div><div style="background:#0c1220"></div>
-                    <div style="background:#111828"></div><div style="background:#050810"></div>
-                  </div>
-                </div>
+                <div class="theme-swatch"><div class="theme-swatch-inner"><div style="background:#080c18"></div><div style="background:#0c1220"></div><div style="background:#111828"></div><div style="background:#050810"></div></div></div>
                 <span class="theme-name">Noche</span>
               </div>
               <div class="theme-opt" data-theme="forest">
-                <div class="theme-swatch">
-                  <div class="theme-swatch-inner">
-                    <div style="background:#08120a"></div><div style="background:#0c1810"></div>
-                    <div style="background:#101e14"></div><div style="background:#050e08"></div>
-                  </div>
-                </div>
+                <div class="theme-swatch"><div class="theme-swatch-inner"><div style="background:#08120a"></div><div style="background:#0c1810"></div><div style="background:#101e14"></div><div style="background:#050e08"></div></div></div>
                 <span class="theme-name">Bosque</span>
               </div>
               <div class="theme-opt" data-theme="cover">
-                <div class="theme-swatch" style="background:linear-gradient(135deg,#1a0a2e,#0a1a3e,#1a2a0a)">
-                  <div style="font-size:14px;display:flex;align-items:center;justify-content:center;width:100%;color:rgba(255,255,255,0.8)">🎨</div>
-                </div>
+                <div class="theme-swatch" style="background:linear-gradient(135deg,#1a0a2e,#0a1a3e,#1a2a0a)"><div style="font-size:14px;display:flex;align-items:center;justify-content:center;width:100%;color:rgba(255,255,255,0.8)">🎨</div></div>
                 <span class="theme-name">Portada</span>
               </div>
             </div>
           </div>
 
-          <!-- Crossfade -->
           <div class="settings-section">
             <div class="settings-row">
               <div class="settings-label-group">
@@ -350,11 +317,10 @@
             <div class="settings-sub" id="crossfadeSubRow">
               <span class="settings-sub-label">Duración: <strong id="crossfadeValLabel">5s</strong></span>
               <input type="range" class="settings-range" id="crossfadeSlider" min="1" max="12" value="5" step="1" />
-              <span class="settings-range-hint">1s &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 12s</span>
+              <span class="settings-range-hint"><span>1s</span><span>12s</span></span>
             </div>
           </div>
 
-          
           <div class="settings-section">
             <div class="settings-row">
               <div class="settings-label-group">
@@ -370,7 +336,6 @@
             </div>
           </div>
 
-          
           <div class="settings-section">
             <div class="settings-row">
               <div class="settings-label-group">
@@ -384,7 +349,6 @@
             </div>
           </div>
 
-         
           <div class="settings-section">
             <div class="settings-row">
               <div class="settings-label-group">
@@ -415,9 +379,9 @@
             <div class="cover-glow"></div>
           </div>
           <div class="track-meta">
-            <p class="track-title"  id="trackTitle">Sin canción cargada</p>
+            <p class="track-title" id="trackTitle">Sin canción cargada</p>
             <p class="track-artist" id="trackArtist">Elegí una carpeta de música</p>
-            <p class="track-album"  id="trackAlbum"></p>
+            <p class="track-album" id="trackAlbum"></p>
             <div class="track-badges">
               <span class="badge" id="badgeIdx">—</span>
               <span class="badge" id="badgeDuration">—:——</span>
@@ -430,7 +394,6 @@
           <canvas id="vizCanvas"></canvas>
         </section>
 
-       
         <section class="lyrics-panel" id="lyricsPanel" style="display:none">
           <div class="lyrics-header">
             <div class="lyrics-header-left">
@@ -517,8 +480,6 @@
           <span class="vol-pct" id="volPct">100%</span>
         </section>
 
-    
-        
         <section class="queue-section">
           <div class="queue-header">
             <div class="queue-title-row">
@@ -554,7 +515,6 @@
 
       </div>
 
-    
       <div id="viewPlaylist" style="display:none">
         <header class="playlist-view-header">
           <button class="back-btn" id="backToPlayer">
@@ -573,26 +533,25 @@
               </svg>
             </div>
             <div>
-              <span class="playlist-view-badge" id="playlistViewBadge" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;color:#1db954;text-transform:uppercase;">PLAYLIST OFICIAL</span>
+              <span class="playlist-view-badge" id="playlistViewBadge">PLAYLIST OFICIAL</span>
               <h2 class="playlist-view-name" id="playlistViewName" contenteditable="false"></h2>
-              <p class="playlist-view-desc" id="playlistViewDesc" style="font-size:0.78rem;color:var(--text-mid);margin-top:4px;"></p>
-              <p class="playlist-view-count" id="playlistViewCount" style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">0 canciones</p>
+              <p class="playlist-view-desc" id="playlistViewDesc"></p>
+              <p class="playlist-view-count" id="playlistViewCount">0 canciones</p>
             </div>
           </div>
           <div class="playlist-view-actions">
-           
             <button class="playlist-play-all-btn" id="playlistPlayAll">
               <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
               Reproducir todo
             </button>
-            
+
             <button class="playlist-add-songs-btn" id="playlistAddSongs">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               Agregar canciones
             </button>
-           
+
             <button class="playlist-delete-btn" id="playlistDeleteBtn" title="Eliminar playlist">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -602,7 +561,6 @@
           </div>
         </header>
 
-        
         <ul class="playlist-tracks" id="playlistTracks">
           <li class="track-list-empty" id="playlistTracksEmpty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -611,10 +569,8 @@
             Tocá "Agregar canciones" para llenar esta playlist
           </li>
         </ul>
-
       </div>
 
-      <!-- Modal para añadir canción a una playlist -->
       <div class="modal-overlay" id="addToPlaylistModal" style="display:none">
         <div class="modal" style="max-width:380px">
           <div class="modal-header">
@@ -656,7 +612,6 @@
     </main>
   </div>
 
- 
   <div class="search-dropdown" id="searchDropdown" style="display:none">
     <div class="search-section-header" id="localSection" style="display:none">
       <span>EN TU BIBLIOTECA</span>
@@ -683,7 +638,7 @@
     <div class="url-download-section" id="urlDownloadSection">
       <div class="url-download-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
-          <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+          <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46A2.78 2.78 0 0 0 22.54 17.58 29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58Z"/>
           <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/>
         </svg>
         <span>DESCARGAR POR URL</span>
@@ -705,8 +660,6 @@
     </div>
   </div>
 
-
-  <!-- Mobile: Library Drawer (slide up from bottom) -->
   <div class="mob-drawer-overlay" id="mobDrawerOverlay"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-handle"></div>
@@ -714,12 +667,9 @@
       <span class="mob-drawer-title" id="mobDrawerTitle">Biblioteca</span>
       <button class="mob-drawer-close" id="mobDrawerClose">✕</button>
     </div>
-    <div class="mob-drawer-content" id="mobDrawerContent">
-      <!-- contenido inyectado por JS: biblioteca o playlists -->
-    </div>
+    <div class="mob-drawer-content" id="mobDrawerContent"></div>
   </div>
 
-  <!-- Mobile: Search Overlay -->
   <div class="mob-search-overlay" id="mobSearchOverlay">
     <div class="mob-search-header">
       <div class="mob-search-input-wrap">
@@ -740,7 +690,6 @@
     <div class="mob-search-results" id="mobSearchResults"></div>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar -->
   <nav class="mob-bottom-nav" id="mobBottomNav">
     <button class="mob-nav-btn" id="mobNavPlayer" title="Reproductor">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -770,42 +719,42 @@
   </nav>
 
   <div class="miniplayer" id="miniplayer">
-  <div class="miniplayer-cover" id="miniCover">
-    <svg viewBox="0 0 42 42" fill="none"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>
+    <div class="miniplayer-cover" id="miniCover">
+      <svg viewBox="0 0 42 42" fill="none"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#555"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#777"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#999"/><rect x="31" y="15" width="3" height="12" rx="1.5" fill="#666"/></svg>
+    </div>
+    <div class="miniplayer-info">
+      <div class="miniplayer-title" id="miniTitle">Sin canción</div>
+      <div class="miniplayer-artist" id="miniArtist">—</div>
+    </div>
+    <div class="miniplayer-controls">
+      <button class="miniplayer-btn" id="miniPrev" title="Anterior">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>
+        </svg>
+      </button>
+      <button class="miniplayer-play" id="miniPlay">
+        <svg id="miniIconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg id="miniIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>
+      </button>
+      <button class="miniplayer-btn" id="miniNext" title="Siguiente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+        </svg>
+      </button>
+    </div>
+    <button class="miniplayer-close" id="miniClose" title="Cerrar">✕</button>
+    <div class="miniplayer-progress">
+      <div class="miniplayer-progress-fill" id="miniProgressFill" style="width:0%"></div>
+    </div>
   </div>
-  <div class="miniplayer-info">
-    <div class="miniplayer-title" id="miniTitle">Sin canción</div>
-    <div class="miniplayer-artist" id="miniArtist">—</div>
-  </div>
-  <div class="miniplayer-controls">
-    <button class="miniplayer-btn" id="miniPrev" title="Anterior">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>
-      </svg>
-    </button>
-    <button class="miniplayer-play" id="miniPlay">
-      <svg id="miniIconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-      <svg id="miniIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
-        <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
-      </svg>
-    </button>
-    <button class="miniplayer-btn" id="miniNext" title="Siguiente">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
-      </svg>
-    </button>
-  </div>
-  <button class="miniplayer-close" id="miniClose" title="Cerrar">✕</button>
-  <div class="miniplayer-progress">
-    <div class="miniplayer-progress-fill" id="miniProgressFill" style="width:0%"></div>
-  </div>
-</div>
-
 
   <div id="ytPlayerContainer" style="position:fixed;top:0;left:0;width:200px;height:200px;opacity:0.001;pointer-events:none;z-index:-1;">
     <div id="ytPlayerFrame"></div>
   </div>
 
+  <script src="wave-fixes.js?v=4.3"></script>
   <script src="script.js?v=4.3"></script>
 </body>
 </html>
