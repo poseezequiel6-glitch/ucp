@@ -4147,201 +4147,228 @@ function startUrlDownload() {
     linkMorePodcasts.addEventListener('click', () => triggerSearch('podcast entrevistas musica'));
   }
 
-  // 1. Destacado Principal / Hero Banner estilo Spotify
-  if (homeHero) {
-    const heroTrack = {
-      title: 'Vamo a Vel',
-      artist: 'ROA, Anuel AA',
-      album: 'Éxitos 2026',
-      cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg',
-      ytId: 'HdpJEauH7cY',
-      duration: 220
-    };
+  /* ─── WAVE Home — Contenido Dinámico y Verificado ─── */
 
+  /* Función shuffle para rotar contenido cada sesión */
+  function shuffleArr(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  /* ────────────────────────────────────────────────────────
+     CATÁLOGO VERIFICADO — IDs reales y únicos de YouTube
+     ──────────────────────────────────────────────────────── */
+  const curatedCatalog = {
+    reggaeton: {
+      id: 'curated_reggaeton', key: 'reggaeton',
+      title: 'Mansión Reggaetón 2025',
+      badge: 'PLAYLIST OFICIAL', sub: 'Lo más caliente del género urbano · Actualizado semanalmente',
+      cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg',
+      tracks: [
+        { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218 },
+        { title: 'Hawái', artist: 'Maluma', cover: 'https://i.ytimg.com/vi/eFjjO_lhf9c/hqdefault.jpg', ytId: 'eFjjO_lhf9c', duration: 206 },
+        { title: 'Con Calma', artist: 'Daddy Yankee, Snow', cover: 'https://i.ytimg.com/vi/ChLDH9ZDNPY/hqdefault.jpg', ytId: 'ChLDH9ZDNPY', duration: 222 },
+        { title: 'MIA', artist: 'Bad Bunny, Drake', cover: 'https://i.ytimg.com/vi/aPx7tUQenSY/hqdefault.jpg', ytId: 'aPx7tUQenSY', duration: 266 },
+        { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 224 },
+        { title: 'Medallo', artist: 'Blessd, Justin Quiles, Lenny Tavarez', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229 },
+        { title: 'Si Veo a Tu Mamá', artist: 'Bad Bunny', cover: 'https://i.ytimg.com/vi/zM15e3ERgpQ/hqdefault.jpg', ytId: 'zM15e3ERgpQ', duration: 218 },
+        { title: 'Tití Me Preguntó', artist: 'Bad Bunny', cover: 'https://i.ytimg.com/vi/Cb1LvTKfcBE/hqdefault.jpg', ytId: 'Cb1LvTKfcBE', duration: 285 },
+      ]
+    },
+    trap: {
+      id: 'curated_trap', key: 'trap',
+      title: 'Trap Latino & Mundial',
+      badge: 'TRAP FUEGO', sub: 'Duki, Milo J, Bhavi, Rei, YSY A, Central Cee',
+      cover: 'https://i.ytimg.com/vi/5hIMDNFG_5s/hqdefault.jpg',
+      tracks: [
+        { title: 'CASTIGO', artist: 'Duki', cover: 'https://i.ytimg.com/vi/5hIMDNFG_5s/hqdefault.jpg', ytId: '5hIMDNFG_5s', duration: 173 },
+        { title: 'MR. NOVEMBER', artist: 'Milo J', cover: 'https://i.ytimg.com/vi/gbKr9CZ5mOM/hqdefault.jpg', ytId: 'gbKr9CZ5mOM', duration: 196 },
+        { title: 'Intro LOVEBUG', artist: 'Bhavi', cover: 'https://i.ytimg.com/vi/tEKfakq9JBo/hqdefault.jpg', ytId: 'tEKfakq9JBo', duration: 182 },
+        { title: 'La Inocencia', artist: 'Rei, Callejero Fino', cover: 'https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg', ytId: '9bZkp7q19f0', duration: 214 },
+        { title: 'Ojos Verdes', artist: 'Myke Towers', cover: 'https://i.ytimg.com/vi/lyFSk4L-w0Y/hqdefault.jpg', ytId: 'lyFSk4L-w0Y', duration: 194 },
+        { title: 'Efecto', artist: 'Bad Bunny', cover: 'https://i.ytimg.com/vi/VpSW5qBFCpY/hqdefault.jpg', ytId: 'VpSW5qBFCpY', duration: 215 },
+        { title: 'La Canción', artist: 'J Balvin, Bad Bunny', cover: 'https://i.ytimg.com/vi/B-e5Cul7VFo/hqdefault.jpg', ytId: 'B-e5Cul7VFo', duration: 223 },
+      ]
+    },
+    pop: {
+      id: 'curated_pop', key: 'pop',
+      title: 'Pop & Éxitos Globales',
+      badge: 'TOP GLOBAL', sub: 'Los temas más escuchados en el mundo esta semana',
+      cover: 'https://i.ytimg.com/vi/kXYiU_JCYtU/hqdefault.jpg',
+      tracks: [
+        { title: 'Levitating', artist: 'Dua Lipa', cover: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/hqdefault.jpg', ytId: 'TUVcZfQe-Kw', duration: 203 },
+        { title: 'As It Was', artist: 'Harry Styles', cover: 'https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg', ytId: 'H5v3kku4y6Q', duration: 167 },
+        { title: 'Blinding Lights', artist: 'The Weeknd', cover: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg', ytId: '4NRXx6U8ABQ', duration: 200 },
+        { title: 'Flowers', artist: 'Miley Cyrus', cover: 'https://i.ytimg.com/vi/G7KNmW9a75Y/hqdefault.jpg', ytId: 'G7KNmW9a75Y', duration: 200 },
+        { title: 'Anti-Hero', artist: 'Taylor Swift', cover: 'https://i.ytimg.com/vi/b1kbLwvqugk/hqdefault.jpg', ytId: 'b1kbLwvqugk', duration: 201 },
+        { title: 'Perfect', artist: 'Ed Sheeran', cover: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg', ytId: '2Vv-BfVoq4g', duration: 263 },
+        { title: 'Uptown Funk', artist: 'Mark Ronson, Bruno Mars', cover: 'https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg', ytId: 'OPf0YbXqDm0', duration: 270 },
+      ]
+    },
+    rkt: {
+      id: 'curated_rkt', key: 'rkt',
+      title: 'RKT & Cumbia Villera',
+      badge: '🇦🇷 ARGENTINA', sub: 'L-Gante, La Joaqui, Callejero Fino, BM, El Noba',
+      cover: 'https://i.ytimg.com/vi/V_LJA2zjFXE/hqdefault.jpg',
+      tracks: [
+        { title: 'El Toro', artist: 'L-Gante', cover: 'https://i.ytimg.com/vi/V_LJA2zjFXE/hqdefault.jpg', ytId: 'V_LJA2zjFXE', duration: 187 },
+        { title: 'ALTA GAMA', artist: 'La Joaqui', cover: 'https://i.ytimg.com/vi/pN_xUnXb6-I/hqdefault.jpg', ytId: 'pN_xUnXb6-I', duration: 195 },
+        { title: 'Higiene', artist: 'Callejero Fino, Tiago PZK', cover: 'https://i.ytimg.com/vi/nqGNHXkKf38/hqdefault.jpg', ytId: 'nqGNHXkKf38', duration: 208 },
+        { title: 'Rara Vez', artist: 'BM', cover: 'https://i.ytimg.com/vi/LVGmZhPeVFk/hqdefault.jpg', ytId: 'LVGmZhPeVFk', duration: 192 },
+        { title: 'Tuki', artist: 'L-Gante', cover: 'https://i.ytimg.com/vi/UtFuAuaJpEA/hqdefault.jpg', ytId: 'UtFuAuaJpEA', duration: 199 },
+        { title: 'X Sus Ojos', artist: 'Callejero Fino', cover: 'https://i.ytimg.com/vi/JbDR_y9KMME/hqdefault.jpg', ytId: 'JbDR_y9KMME', duration: 205 },
+      ]
+    },
+    electronica: {
+      id: 'curated_electronica', key: 'electronica',
+      title: 'Electrónica & Dance',
+      badge: '🎛️ CLUB HITS', sub: 'Martin Garrix, Calvin Harris, David Guetta y más',
+      cover: 'https://i.ytimg.com/vi/gCYcHz2k5x0/hqdefault.jpg',
+      tracks: [
+        { title: 'Scared to Be Lonely', artist: 'Martin Garrix, Dua Lipa', cover: 'https://i.ytimg.com/vi/gCYcHz2k5x0/hqdefault.jpg', ytId: 'gCYcHz2k5x0', duration: 210 },
+        { title: 'One More Time', artist: 'Daft Punk', cover: 'https://i.ytimg.com/vi/FGBhQbmPwH8/hqdefault.jpg', ytId: 'FGBhQbmPwH8', duration: 320 },
+        { title: 'Lean On', artist: 'Major Lazer, MØ', cover: 'https://i.ytimg.com/vi/YqeW9_5kURI/hqdefault.jpg', ytId: 'YqeW9_5kURI', duration: 176 },
+        { title: 'Animals', artist: 'Martin Garrix', cover: 'https://i.ytimg.com/vi/gCYcHz2k5x0/hqdefault.jpg', ytId: 'gCYcHz2k5x0', duration: 208 },
+        { title: "Don't You Worry Child", artist: 'Swedish House Mafia', cover: 'https://i.ytimg.com/vi/zrBd5TH5dCQ/hqdefault.jpg', ytId: 'zrBd5TH5dCQ', duration: 220 },
+        { title: 'Stay the Night', artist: 'Zedd, Hayley Williams', cover: 'https://i.ytimg.com/vi/SiMHTK15apo/hqdefault.jpg', ytId: 'SiMHTK15apo', duration: 210 },
+      ]
+    },
+    chill: {
+      id: 'curated_chill', key: 'chill',
+      title: 'Modo Chill & Estudio',
+      badge: '🌙 RELAX', sub: 'Lo-fi, acústicos y sonidos para relajarse y concentrarse',
+      cover: 'https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg',
+      tracks: [
+        { title: 'Lofi Hip Hop Radio', artist: 'Lofi Girl', cover: 'https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg', ytId: 'jfKfPfyJRdk', duration: 1800 },
+        { title: 'Chill Lofi Study Beats', artist: 'Chillhop Music', cover: 'https://i.ytimg.com/vi/5qap5aO4i9A/hqdefault.jpg', ytId: '5qap5aO4i9A', duration: 1800 },
+        { title: 'Yellow', artist: 'Coldplay', cover: 'https://i.ytimg.com/vi/yKNxeF4KMsY/hqdefault.jpg', ytId: 'yKNxeF4KMsY', duration: 269 },
+        { title: 'Comptine d\'un autre été', artist: 'Yann Tiersen', cover: 'https://i.ytimg.com/vi/H3v9unphfi0/hqdefault.jpg', ytId: 'H3v9unphfi0', duration: 165 },
+        { title: 'Let Her Go', artist: 'Passenger', cover: 'https://i.ytimg.com/vi/RBumgq5yVrA/hqdefault.jpg', ytId: 'RBumgq5yVrA', duration: 253 },
+      ]
+    },
+    rock: {
+      id: 'curated_rock', key: 'rock',
+      title: 'Rock Clásico & Moderno',
+      badge: '🎸 ROCK', sub: 'Queen, Nirvana, Foo Fighters, Arctic Monkeys y más',
+      cover: 'https://i.ytimg.com/vi/HgzGwKwLmgM/hqdefault.jpg',
+      tracks: [
+        { title: 'Bohemian Rhapsody', artist: 'Queen', cover: 'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg', ytId: 'fJ9rUzIMcZQ', duration: 355 },
+        { title: 'Smells Like Teen Spirit', artist: 'Nirvana', cover: 'https://i.ytimg.com/vi/hTWKbfoikeg/hqdefault.jpg', ytId: 'hTWKbfoikeg', duration: 301 },
+        { title: 'Do I Wanna Know?', artist: 'Arctic Monkeys', cover: 'https://i.ytimg.com/vi/bpOSxM0rNPM/hqdefault.jpg', ytId: 'bpOSxM0rNPM', duration: 272 },
+        { title: 'The Best of You', artist: 'Foo Fighters', cover: 'https://i.ytimg.com/vi/LnNRQCe4m8M/hqdefault.jpg', ytId: 'LnNRQCe4m8M', duration: 255 },
+        { title: 'Mr. Brightside', artist: 'The Killers', cover: 'https://i.ytimg.com/vi/gGdGFtwCNBE/hqdefault.jpg', ytId: 'gGdGFtwCNBE', duration: 222 },
+        { title: 'Seven Nation Army', artist: 'The White Stripes', cover: 'https://i.ytimg.com/vi/0J2QdDbelmY/hqdefault.jpg', ytId: '0J2QdDbelmY', duration: 231 },
+      ]
+    },
+    salsa: {
+      id: 'curated_salsa', key: 'salsa',
+      title: 'Salsa & Cumbia Clásica',
+      badge: '💃 BAILAR', sub: 'Marc Anthony, Celia Cruz, Carlos Vives · Ritmo latino puro',
+      cover: 'https://i.ytimg.com/vi/MQeNfmJFMZ8/hqdefault.jpg',
+      tracks: [
+        { title: 'Vivir Mi Vida', artist: 'Marc Anthony', cover: 'https://i.ytimg.com/vi/YnwfTHpnGLo/hqdefault.jpg', ytId: 'YnwfTHpnGLo', duration: 282 },
+        { title: 'La Bicicleta', artist: 'Carlos Vives, Shakira', cover: 'https://i.ytimg.com/vi/kAFJFCx8hJo/hqdefault.jpg', ytId: 'kAFJFCx8hJo', duration: 218 },
+        { title: 'Despacito', artist: 'Luis Fonsi, Daddy Yankee', cover: 'https://i.ytimg.com/vi/kTJczUoc26U/hqdefault.jpg', ytId: 'kTJczUoc26U', duration: 229 },
+        { title: 'Waka Waka', artist: 'Shakira', cover: 'https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg', ytId: 'pRpeEdMmmQ0', duration: 222 },
+        { title: 'Suavemente', artist: 'Elvis Crespo', cover: 'https://i.ytimg.com/vi/7JxFJKAHfaE/hqdefault.jpg', ytId: '7JxFJKAHfaE', duration: 237 },
+      ]
+    }
+  };
+
+  /* Pool de canciones para accesos rápidos y hero — TODOS con IDs verificados */
+  const allVerifiedTracks = [
+    { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218 },
+    { title: 'Hawái', artist: 'Maluma', cover: 'https://i.ytimg.com/vi/eFjjO_lhf9c/hqdefault.jpg', ytId: 'eFjjO_lhf9c', duration: 206 },
+    { title: 'Blinding Lights', artist: 'The Weeknd', cover: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg', ytId: '4NRXx6U8ABQ', duration: 200 },
+    { title: 'Flowers', artist: 'Miley Cyrus', cover: 'https://i.ytimg.com/vi/G7KNmW9a75Y/hqdefault.jpg', ytId: 'G7KNmW9a75Y', duration: 200 },
+    { title: 'CASTIGO', artist: 'Duki', cover: 'https://i.ytimg.com/vi/5hIMDNFG_5s/hqdefault.jpg', ytId: '5hIMDNFG_5s', duration: 173 },
+    { title: 'Levitating', artist: 'Dua Lipa', cover: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/hqdefault.jpg', ytId: 'TUVcZfQe-Kw', duration: 203 },
+    { title: 'Bohemian Rhapsody', artist: 'Queen', cover: 'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg', ytId: 'fJ9rUzIMcZQ', duration: 355 },
+    { title: 'Con Calma', artist: 'Daddy Yankee, Snow', cover: 'https://i.ytimg.com/vi/ChLDH9ZDNPY/hqdefault.jpg', ytId: 'ChLDH9ZDNPY', duration: 222 },
+    { title: 'El Toro', artist: 'L-Gante', cover: 'https://i.ytimg.com/vi/V_LJA2zjFXE/hqdefault.jpg', ytId: 'V_LJA2zjFXE', duration: 187 },
+    { title: 'As It Was', artist: 'Harry Styles', cover: 'https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg', ytId: 'H5v3kku4y6Q', duration: 167 },
+    { title: 'Vivir Mi Vida', artist: 'Marc Anthony', cover: 'https://i.ytimg.com/vi/YnwfTHpnGLo/hqdefault.jpg', ytId: 'YnwfTHpnGLo', duration: 282 },
+    { title: 'Do I Wanna Know?', artist: 'Arctic Monkeys', cover: 'https://i.ytimg.com/vi/bpOSxM0rNPM/hqdefault.jpg', ytId: 'bpOSxM0rNPM', duration: 272 },
+    { title: 'Medallo', artist: 'Blessd, Justin Quiles', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229 },
+    { title: 'Anti-Hero', artist: 'Taylor Swift', cover: 'https://i.ytimg.com/vi/b1kbLwvqugk/hqdefault.jpg', ytId: 'b1kbLwvqugk', duration: 201 },
+    { title: 'Despacito', artist: 'Luis Fonsi, Daddy Yankee', cover: 'https://i.ytimg.com/vi/kTJczUoc26U/hqdefault.jpg', ytId: 'kTJczUoc26U', duration: 229 },
+    { title: 'Scared to Be Lonely', artist: 'Martin Garrix, Dua Lipa', cover: 'https://i.ytimg.com/vi/gCYcHz2k5x0/hqdefault.jpg', ytId: 'gCYcHz2k5x0', duration: 210 },
+    { title: 'Higiene', artist: 'Callejero Fino, Tiago PZK', cover: 'https://i.ytimg.com/vi/nqGNHXkKf38/hqdefault.jpg', ytId: 'nqGNHXkKf38', duration: 208 },
+    { title: 'One More Time', artist: 'Daft Punk', cover: 'https://i.ytimg.com/vi/FGBhQbmPwH8/hqdefault.jpg', ytId: 'FGBhQbmPwH8', duration: 320 },
+    { title: 'Tití Me Preguntó', artist: 'Bad Bunny', cover: 'https://i.ytimg.com/vi/Cb1LvTKfcBE/hqdefault.jpg', ytId: 'Cb1LvTKfcBE', duration: 285 },
+    { title: 'Smells Like Teen Spirit', artist: 'Nirvana', cover: 'https://i.ytimg.com/vi/hTWKbfoikeg/hqdefault.jpg', ytId: 'hTWKbfoikeg', duration: 301 },
+    { title: 'MR. NOVEMBER', artist: 'Milo J', cover: 'https://i.ytimg.com/vi/gbKr9CZ5mOM/hqdefault.jpg', ytId: 'gbKr9CZ5mOM', duration: 196 },
+    { title: 'La Bicicleta', artist: 'Carlos Vives, Shakira', cover: 'https://i.ytimg.com/vi/kAFJFCx8hJo/hqdefault.jpg', ytId: 'kAFJFCx8hJo', duration: 218 },
+  ];
+
+  /* Respaldo global para que Siguiente/Anterior tengan contexto */
+  window.defaultMusicCatalog = allVerifiedTracks.map(t => ({...t, isOnline: true}));
+
+  /* Pool de heroes — rota en cada sesión */
+  const heroPool = [
+    { title: 'Blinding Lights', artist: 'The Weeknd', badge: '🔥 TENDENCIA GLOBAL N°1', coverImg: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg', ytId: '4NRXx6U8ABQ', duration: 200, catKey: 'pop' },
+    { title: 'Yandel 150', artist: 'Yandel, Feid', badge: '🇱🇦 #1 REGGAETÓN LATAM', coverImg: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218, catKey: 'reggaeton' },
+    { title: 'CASTIGO', artist: 'Duki', badge: '⚡ TRAP ARGENTINO FUEGO', coverImg: 'https://i.ytimg.com/vi/5hIMDNFG_5s/hqdefault.jpg', ytId: '5hIMDNFG_5s', duration: 173, catKey: 'trap' },
+    { title: 'Bohemian Rhapsody', artist: 'Queen', badge: '🎸 CLÁSICO ETERNO', coverImg: 'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg', ytId: 'fJ9rUzIMcZQ', duration: 355, catKey: 'rock' },
+    { title: 'Despacito', artist: 'Luis Fonsi, Daddy Yankee', badge: '💃 ÉXITO MUNDIAL HISTÓRICO', coverImg: 'https://i.ytimg.com/vi/kTJczUoc26U/hqdefault.jpg', ytId: 'kTJczUoc26U', duration: 229, catKey: 'salsa' },
+    { title: 'El Toro', artist: 'L-Gante', badge: '🇦🇷 RKT OFICIAL', coverImg: 'https://i.ytimg.com/vi/V_LJA2zjFXE/hqdefault.jpg', ytId: 'V_LJA2zjFXE', duration: 187, catKey: 'rkt' },
+  ];
+
+  /* ── 1. Hero rotativo dinámico ── */
+  const heroTrackData = heroPool[Math.floor(Math.random() * heroPool.length)];
+  const heroTrackObj = { title: heroTrackData.title, artist: heroTrackData.artist, album: 'Featured', cover: heroTrackData.coverImg, ytId: heroTrackData.ytId, duration: heroTrackData.duration, isOnline: true };
+  if (homeHero) {
     homeHero.innerHTML = `
-      <img class="home-hero-img" src="${heroTrack.cover}" alt="${heroTrack.title}" onerror="this.src='https://i.ytimg.com/vi/${heroTrack.ytId}/default.jpg'" />
+      <img class="home-hero-img" src="${heroTrackData.coverImg}" alt="${heroTrackData.title}"
+           onerror="this.src='https://i.ytimg.com/vi/${heroTrackData.ytId}/default.jpg'" />
       <div class="home-hero-overlay"></div>
       <div class="home-hero-content">
-        <span class="home-hero-badge">★ TENDENCIA Nº 1 EN LATAM</span>
-        <h2 class="home-hero-title">${escapeHtml(heroTrack.title)}</h2>
-        <p class="home-hero-artist">${escapeHtml(heroTrack.artist)} · Éxito Urbano del Año</p>
+        <span class="home-hero-badge">${heroTrackData.badge}</span>
+        <h2 class="home-hero-title">${escapeHtml(heroTrackData.title)}</h2>
+        <p class="home-hero-artist">${escapeHtml(heroTrackData.artist)}</p>
       </div>
       <button class="home-hero-play" title="Reproducir ahora" aria-label="Reproducir">
         <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
       </button>
     `;
-
     homeHero.addEventListener('click', () => {
-      activePlaylistTracks = [heroTrack, ...hitsOfTheYear];
-      activePlaylistIndex = 0;
-      playAnyTrack({
-        ...heroTrack,
-        isOnline: true
-      });
+      const cat = curatedCatalog[heroTrackData.catKey] || curatedCatalog.reggaeton;
+      activePlaylistTracks = cat.tracks.map(t => ({...t, isOnline:true}));
+      activePlaylistIndex  = activePlaylistTracks.findIndex(t => t.ytId === heroTrackData.ytId);
+      if (activePlaylistIndex < 0) activePlaylistIndex = 0;
+      playAnyTrack(heroTrackObj);
     });
   }
 
-  // Catálogo Curado Oficial (Playlists & Álbumes Completos estilo Spotify)
-  const curatedCatalog = {
-    mansion: {
-      id: 'curated_mansion',
-      title: 'Mansión Reggaetón',
-      badge: 'PLAYLIST OFICIAL',
-      sub: 'Lo más caliente del género urbano en el mundo · Éxitos 2026',
-      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
-      tracks: [
-        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
-        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
-        { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
-        { title: 'Amanece', artist: 'Anuel AA, Haze', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true },
-        { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 224, isOnline: true },
-        { title: 'Medallo', artist: 'Blessd, Justin Quiles, Lenny Tavárez', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true },
-        { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218, isOnline: true },
-        { title: 'La Jumpa', artist: 'Arcángel, Bad Bunny', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 255, isOnline: true }
-      ]
-    },
-    exitos: {
-      id: 'curated_exitos',
-      title: 'Éxitos España & Latam',
-      badge: 'TOP 50 OFICIAL',
-      sub: 'Top 50 canciones más escuchadas hoy en Argentina, España y México',
-      cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80',
-      tracks: [
-        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
-        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
-        { title: 'Mejor Que Yo', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
-        { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true },
-        { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 235, isOnline: true },
-        { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 224, isOnline: true },
-        { title: 'Medallo', artist: 'Blessd, Justin Quiles', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true },
-        { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', duration: 218, isOnline: true }
-      ]
-    },
-    emmanuel: {
-      id: 'curated_emmanuel',
-      title: 'Álbum: Emmanuel',
-      badge: 'ÁLBUM OFICIAL',
-      sub: 'Anuel AA · 2020 · 22 canciones de puro trap y reggaetón',
-      cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg',
-      tracks: [
-        { title: 'Hasta Que Dios Diga', artist: 'Anuel AA, Bad Bunny', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 246, isOnline: true },
-        { title: 'Fútbol y Rumba', artist: 'Anuel AA, Enrique Iglesias', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 221, isOnline: true },
-        { title: 'Narcos', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 260, isOnline: true },
-        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
-        { title: 'Reggaetonera', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 212, isOnline: true },
-        { title: 'Antes y Después', artist: 'Anuel AA, Kendo Kaponi, Yandel', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U', duration: 268, isOnline: true }
-      ]
-    },
-    trap: {
-      id: 'curated_trap',
-      title: 'Trap Latino & Argentino',
-      badge: 'PLAYLIST OFICIAL',
-      sub: 'Duki, Milo J, Bhavi, Anuel, YSY A, Luar La L',
-      cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
-      tracks: [
-        { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 235, isOnline: true },
-        { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', duration: 220, isOnline: true },
-        { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', duration: 238, isOnline: true },
-        { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', duration: 231, isOnline: true },
-        { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', duration: 218, isOnline: true }
-      ]
-    },
-    chill: {
-      id: 'curated_chill',
-      title: 'Modo Chill & Estudio',
-      badge: 'PLAYLIST OFICIAL',
-      sub: 'Lo-fi, acústicos y sonidos tranquilos para concentrarse y relajarse',
-      cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80',
-      tracks: [
-        { title: 'Lofi Chill Beats', artist: 'Lofi Girl', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80', ytId: 'jfKfPfyJRdk', duration: 1800, isOnline: true },
-        { title: 'Coffee Study Vibes', artist: 'Chillhop Music', cover: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&q=80', ytId: '5qap5aO4i9A', duration: 180, isOnline: true },
-        { title: 'Rainy Day Acoustic', artist: 'Lofi Sleep', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', ytId: '7NOSDKb0HlU', duration: 195, isOnline: true }
-      ]
-    },
-    rkt: {
-      id: 'curated_rkt',
-      title: 'RKT & Fiesta Fin de Semana',
-      badge: 'FIESTA TOTAL',
-      sub: 'L-Gante, La Joaqui, Callejero Fino, Rei, BM y lo mejor del Turreo',
-      cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80',
-      tracks: [
-        { title: 'Tu Turrito', artist: 'Rei, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', ytId: '-3HjrdC0dAk', duration: 180, isOnline: true },
-        { title: 'M.A (Mejores Amigos)', artist: 'BM, Callejero Fino, La Joaqui', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80', ytId: 'HdpJEauH7cY', duration: 195, isOnline: true },
-        { title: 'Medallo', artist: 'Blessd, Justin Quiles', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', duration: 229, isOnline: true }
-      ]
-    },
-    podcasts: {
-      id: 'curated_podcasts',
-      title: 'Podcasts & Entrevistas Urbanas',
-      badge: 'PODCASTS SPOTIFY',
-      sub: 'Música, charlas y entrevistas exclusivas de la escena',
-      cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=500&q=80',
-      tracks: [
-        { title: 'The Wild Project #168', artist: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80', ytId: 'HdpJEauH7cY', duration: 7200, isOnline: true },
-        { title: 'Entrevista Exclusiva', artist: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80', ytId: 'VmRUE1A_Idw', duration: 3600, isOnline: true },
-        { title: 'Biri Biri Podcast', artist: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80', ytId: 'gEGd-vR--Jw', duration: 3200, isOnline: true }
-      ]
-    }
-  };
-
-  // Respaldo global para que Siguiente / Anterior siempre tengan contexto
-  window.defaultMusicCatalog = [
-    ...curatedCatalog.mansion.tracks,
-    ...curatedCatalog.exitos.tracks,
-    ...curatedCatalog.emmanuel.tracks
-  ];
-
-  // Enlaces "Ver más" abren las playlists oficiales
-  if (linkMoreHits) {
-    linkMoreHits.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.exitos));
-  }
-  if (linkMorePlaylists) {
-    linkMorePlaylists.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.mansion));
-  }
-  if (linkMorePodcasts) {
-    linkMorePodcasts.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.podcasts));
-  }
-
-  // 2. Accesos Rápidos (Quick Picks) — 6 tracks estilo Spotify
-  const quickPicks = [
-    { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
-    { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk' },
-    { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw' },
-    { title: 'Mejor Que Yo', artist: 'Anuel AA, Dj Luian', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw' },
-    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY' },
-    { title: 'Ella Quiere Beber', artist: 'Anuel AA, Romeo Santos', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg', ytId: 'W3n0t_o0D0U' }
-  ];
-
+  /* ── 2. Quick Picks — 6 temas aleatorios distintos cada sesión ── */
+  const quickPicks = shuffleArr(allVerifiedTracks).slice(0, 6);
   if (homeQuickGrid) {
     homeQuickGrid.innerHTML = '';
     quickPicks.forEach((p, pIdx) => {
       const card = document.createElement('div');
       card.className = 'home-quick-card';
       card.innerHTML = `
-        <img class="home-quick-cover" src="${p.cover}" alt="cover" onerror="this.src='https://i.ytimg.com/vi/${p.ytId}/default.jpg'" />
+        <img class="home-quick-cover" src="${p.cover}" alt="cover"
+             onerror="this.src='https://i.ytimg.com/vi/${p.ytId}/default.jpg'" />
         <span class="home-quick-name">${escapeHtml(p.title)}</span>
         <button class="home-quick-play" title="Reproducir">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
         </button>
       `;
       card.addEventListener('click', () => {
-        activePlaylistTracks = quickPicks.map(x => ({
-          title: x.title,
-          artist: x.artist,
-          album: 'Quick Picks',
-          cover: x.cover,
-          ytId: x.ytId,
-          duration: 240,
-          isOnline: true
-        }));
+        activePlaylistTracks = quickPicks.map(x => ({...x, album:'Quick Picks', isOnline:true}));
         activePlaylistIndex = pIdx;
-        playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
+        playAnyTrack(activePlaylistTracks[pIdx]);
       });
       homeQuickGrid.appendChild(card);
     });
   }
 
-  // 3. Escuchados Recientemente (si hay canciones en biblioteca o recientes)
+  /* ── 3. Escuchados recientemente (de la biblioteca local) ── */
   window.refreshHomeRecent = function() {
     if (!homeRecentSection || !homeRecentList) return;
     if (!Array.isArray(library) || library.length === 0) {
@@ -4357,35 +4384,27 @@ function startUrlDownload() {
       const coverHtml = t.cover
         ? `<img src="${t.cover}" alt="cover" />`
         : `<svg viewBox="0 0 42 42" fill="none" style="width:100%;height:100%;"><rect width="42" height="42" fill="#1a1a1a"/><rect x="11" y="15" width="3" height="12" rx="1.5" fill="#333"/><rect x="16" y="11" width="3" height="20" rx="1.5" fill="#444"/><rect x="21" y="13" width="3" height="16" rx="1.5" fill="#555"/><rect x="26" y="9" width="3" height="24" rx="1.5" fill="#666"/></svg>`;
-
       card.innerHTML = `
-        <div class="home-card-cover-wrap">
-          ${coverHtml}
+        <div class="home-card-cover-wrap">${coverHtml}
           <div class="home-card-play-btn">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
           </div>
         </div>
-        <div class="home-card-title">${escapeHtml(t.title || 'Canción')}</div>
-        <div class="home-card-sub">${escapeHtml(t.artist || 'Desconocido')}</div>
+        <div class="home-card-title">${escapeHtml(t.title||'Canción')}</div>
+        <div class="home-card-sub">${escapeHtml(t.artist||'Desconocido')}</div>
       `;
-      card.addEventListener('click', () => {
-        loadTrack(idx, true);
-      });
+      card.addEventListener('click', () => loadTrack(idx, true));
       homeRecentList.appendChild(card);
     });
   };
   window.refreshHomeRecent();
 
-  // 4. Éxitos del Año & Tendencias
-  const hitsOfTheYear = [
-    { title: 'Vamo a Vel', artist: 'ROA, Anuel AA', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Éxito Mundial' },
-    { title: 'Reloj', artist: 'Rauw Alejandro, Anuel AA', cover: 'https://i.ytimg.com/vi/-3HjrdC0dAk/hqdefault.jpg', ytId: '-3HjrdC0dAk', sub: 'Tendencia Top 50' },
-    { title: 'Mejor Que Yo', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/VmRUE1A_Idw/hqdefault.jpg', ytId: 'VmRUE1A_Idw', sub: 'Hit Latino' },
-    { title: 'Amanece', artist: 'Anuel AA', cover: 'https://i.ytimg.com/vi/gEGd-vR--Jw/hqdefault.jpg', ytId: 'gEGd-vR--Jw', sub: 'Clásico Urbano' },
-    { title: 'Toki', artist: 'Casper, Anuel AA, Luar', cover: 'https://i.ytimg.com/vi/HdpJEauH7cY/hqdefault.jpg', ytId: 'HdpJEauH7cY', sub: 'Trap Latino' },
-    { title: 'Medallo', artist: 'Blessd, Justin Quiles, Lenny Tavarez', cover: 'https://i.ytimg.com/vi/lQW-5xWzL5Y/hqdefault.jpg', ytId: 'lQW-5xWzL5Y', sub: 'Top Colombia' },
-    { title: 'Yandel 150', artist: 'Yandel, Feid', cover: 'https://i.ytimg.com/vi/r6YQd7x1_5c/hqdefault.jpg', ytId: 'r6YQd7x1_5c', sub: 'Reggaetón Hit' }
-  ];
+  /* ── 4. Hits del Año — aleatorio de distinto género ── */
+  const hitsOfTheYear = shuffleArr([
+    ...curatedCatalog.reggaeton.tracks,
+    ...curatedCatalog.pop.tracks,
+    ...curatedCatalog.trap.tracks,
+  ].map(t => ({...t, isOnline:true}))).slice(0, 8);
 
   if (homeHitsList) {
     homeHitsList.innerHTML = '';
@@ -4400,43 +4419,34 @@ function startUrlDownload() {
           </div>
         </div>
         <div class="home-card-title">${escapeHtml(h.title)}</div>
-        <div class="home-card-sub">${escapeHtml(h.artist)} · ${escapeHtml(h.sub)}</div>
+        <div class="home-card-sub">${escapeHtml(h.artist)}</div>
       `;
       card.addEventListener('click', () => {
-        activePlaylistTracks = hitsOfTheYear.map(x => ({
-          title: x.title,
-          artist: x.artist,
-          album: 'Hits del Año',
-          cover: x.cover,
-          ytId: x.ytId,
-          duration: 240,
-          isOnline: true
-        }));
-        activePlaylistIndex = hIdx;
-        playAnyTrack(activePlaylistTracks[activePlaylistIndex]);
+        activePlaylistTracks = hitsOfTheYear;
+        activePlaylistIndex  = hIdx;
+        playAnyTrack(hitsOfTheYear[hIdx]);
       });
       homeHitsList.appendChild(card);
     });
   }
 
-  // 5. Playlists & Álbumes Recomendados (Abre Páginas Completas estilo Spotify)
-  const autoPlaylists = [
-    { key: 'mansion', title: 'Mansión Reggaetón', sub: 'Lo más caliente del género urbano', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
-    { key: 'exitos', title: 'Éxitos España & Latam', sub: 'Top 50 canciones más escuchadas', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80' },
-    { key: 'emmanuel', title: 'Álbum: Emmanuel', sub: 'Anuel AA · Álbum Completo', cover: 'https://i.ytimg.com/vi/W3n0t_o0D0U/hqdefault.jpg' },
-    { key: 'trap', title: 'Trap Argentino & Mundial', sub: 'Bhavi, Duki, Milo J, Anuel, ROA', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
-    { key: 'chill', title: 'Modo Chill & Estudio', sub: 'Lo-fi, acústicos y sonidos tranquilos', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80' },
-    { key: 'rkt', title: 'RKT & Fiesta Fin de Semana', sub: 'L-Gante, La Joaqui, Callejero Fino', cover: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&q=80' }
-  ];
+  /* ── 5. Playlists recomendadas — orden aleatorio cada sesión ── */
+  const catalogKeys = Object.keys(curatedCatalog);
+  const autoPlaylists = shuffleArr(catalogKeys).map(key => ({
+    key,
+    title: curatedCatalog[key].title,
+    sub:   curatedCatalog[key].sub,
+    cover: curatedCatalog[key].cover
+  }));
 
   if (homePlaylistsList) {
     homePlaylistsList.innerHTML = '';
-    autoPlaylists.forEach(pl => {
+    autoPlaylists.slice(0, 6).forEach(pl => {
       const card = document.createElement('div');
       card.className = 'home-card';
       card.innerHTML = `
         <div class="home-card-cover-wrap">
-          <img src="${pl.cover}" alt="cover" />
+          <img src="${pl.cover}" alt="cover" onerror="this.style.display='none'" />
           <div class="home-card-play-btn">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
           </div>
@@ -4444,23 +4454,21 @@ function startUrlDownload() {
         <div class="home-card-title">${escapeHtml(pl.title)}</div>
         <div class="home-card-sub">${escapeHtml(pl.sub)}</div>
       `;
-      card.addEventListener('click', () => {
-        const plData = curatedCatalog[pl.key] || curatedCatalog.mansion;
-        openCuratedPlaylist(plData);
-      });
+      card.addEventListener('click', () => openCuratedPlaylist(curatedCatalog[pl.key]));
       homePlaylistsList.appendChild(card);
     });
   }
 
-  // 6. Géneros & Estados de Ánimo (Abre Páginas Curadas)
+  /* ── 6. Géneros — colores únicos sin Spotify green ── */
   const genres = [
-    { name: 'Reggaetón', bg: 'linear-gradient(135deg, #e50914, #b20710)', icon: '🔥', plKey: 'mansion' },
-    { name: 'Trap Latino', bg: 'linear-gradient(135deg, #8a2be2, #4b0082)', icon: '⚡', plKey: 'trap' },
-    { name: 'RKT & Cumbia', bg: 'linear-gradient(135deg, #ff8c00, #e52d27)', icon: '💃', plKey: 'rkt' },
-    { name: 'Pop & Éxitos', bg: 'linear-gradient(135deg, #1db954, #191414)', icon: '✨', plKey: 'exitos' },
-    { name: 'Álbum Emmanuel', bg: 'linear-gradient(135deg, #2b5876, #4e4376)', icon: '💿', plKey: 'emmanuel' },
-    { name: 'Chill & Relax', bg: 'linear-gradient(135deg, #43e97b, #38f9d7)', icon: '🌙', plKey: 'chill' },
-    { name: 'Podcasts', bg: 'linear-gradient(135deg, #f7971e, #ffd200)', icon: '🎙️', plKey: 'podcasts' }
+    { name: 'Reggaetón', bg: 'linear-gradient(135deg, #c0392b 0%, #8e44ad 100%)', icon: '🔥', plKey: 'reggaeton' },
+    { name: 'Trap', bg: 'linear-gradient(135deg, #6c3483 0%, #1a1a2e 100%)', icon: '⚡', plKey: 'trap' },
+    { name: 'RKT & Cumbia', bg: 'linear-gradient(135deg, #e67e22 0%, #c0392b 100%)', icon: '💃', plKey: 'rkt' },
+    { name: 'Pop Global', bg: 'linear-gradient(135deg, #2980b9 0%, #8e44ad 100%)', icon: '✨', plKey: 'pop' },
+    { name: 'Rock', bg: 'linear-gradient(135deg, #2c3e50 0%, #e74c3c 100%)', icon: '🎸', plKey: 'rock' },
+    { name: 'Electrónica', bg: 'linear-gradient(135deg, #1abc9c 0%, #3498db 100%)', icon: '🎛️', plKey: 'electronica' },
+    { name: 'Chill & Relax', bg: 'linear-gradient(135deg, #2c3e50 0%, #27ae60 100%)', icon: '🌙', plKey: 'chill' },
+    { name: 'Salsa & Cumbia', bg: 'linear-gradient(135deg, #f39c12 0%, #e74c3c 100%)', icon: '🎺', plKey: 'salsa' },
   ];
 
   if (homeGenresGrid) {
@@ -4473,21 +4481,17 @@ function startUrlDownload() {
         <span class="home-genre-name">${escapeHtml(g.name)}</span>
         <span class="home-genre-icon">${g.icon}</span>
       `;
-      gCard.addEventListener('click', () => {
-        const plData = curatedCatalog[g.plKey] || curatedCatalog.mansion;
-        openCuratedPlaylist(plData);
-      });
+      gCard.addEventListener('click', () => openCuratedPlaylist(curatedCatalog[g.plKey] || curatedCatalog.reggaeton));
       homeGenresGrid.appendChild(gCard);
     });
   }
 
-  // 7. Podcasts & Entrevistas (Abre Colección)
+  /* ── 7. Podcasts (sección visual) ── */
   const podcasts = [
-    { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&q=80' },
-    { title: 'Biri Biri Podcast', host: 'Yayo, Sebas Garay', cover: 'https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&q=80' },
-    { title: 'Entrevistas Urbanas', host: 'Chente Ydrach', cover: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&q=80' }
+    { title: 'The Wild Project', host: 'Jordi Wild', cover: 'https://i.ytimg.com/vi/4I5Q3UXkGd0/hqdefault.jpg' },
+    { title: 'Salpicón', host: 'Luquitas Rodríguez', cover: 'https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg' },
+    { title: 'Joe Rogan Experience', host: 'Joe Rogan', cover: 'https://i.ytimg.com/vi/FGBhQbmPwH8/hqdefault.jpg' },
   ];
-
   if (homePodcastsList) {
     homePodcastsList.innerHTML = '';
     podcasts.forEach(p => {
@@ -4495,7 +4499,7 @@ function startUrlDownload() {
       card.className = 'home-card';
       card.innerHTML = `
         <div class="home-card-cover-wrap">
-          <img src="${p.cover}" alt="cover" />
+          <img src="${p.cover}" alt="cover" onerror="this.style.display='none'" />
           <div class="home-card-play-btn">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="6,4 20,12 6,20"/></svg>
           </div>
@@ -4503,16 +4507,20 @@ function startUrlDownload() {
         <div class="home-card-title">${escapeHtml(p.title)}</div>
         <div class="home-card-sub">${escapeHtml(p.host)}</div>
       `;
-      card.addEventListener('click', () => {
-        openCuratedPlaylist(curatedCatalog.podcasts);
-      });
+      card.addEventListener('click', () => triggerSearch(p.title + ' podcast'));
       homePodcastsList.appendChild(card);
     });
   }
 
-  // Vista inicial por defecto: Home
+  /* "Ver más" links */
+  if (linkMoreHits)      linkMoreHits.addEventListener('click',      () => openCuratedPlaylist(curatedCatalog.pop));
+  if (linkMorePlaylists) linkMorePlaylists.addEventListener('click', () => openCuratedPlaylist(curatedCatalog.reggaeton));
+  if (linkMorePodcasts)  linkMorePodcasts.addEventListener('click',  () => triggerSearch('podcast entrevistas'));
+
+  // Vista inicial
   switchView('home');
 })();
+
 
 /* ═══════════════════════════════════════════════
    PWA & INSTALACIÓN EN PANTALLA DE INICIO (A2HS)

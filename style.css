@@ -2609,7 +2609,18 @@ body {
 /* ── Main panel ── */
 .main-panel {
   background: var(--bg-panel) !important;
-  padding: 28px 40px 20px !important;
+}
+@media (min-width: 851px) {
+  .main-panel {
+    padding: 28px 36px 20px !important;
+  }
+}
+@media (max-width: 850px) {
+  .main-panel {
+    padding: 12px 14px calc(var(--mob-nav-h) + 70px + var(--mob-safe-bottom)) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
 .main-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08) !important; }
 .main-panel::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.4) !important; }
@@ -3206,3 +3217,114 @@ body[data-theme="cover"] {
   outline-offset: 2px !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE & TABLET FULL-WIDTH UX/UI OVERHAUL (≤ 850px)
+   Eliminates narrow view, optimizes card sizes & touch targets
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 850px) {
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .app-shell {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .main-panel {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 14px 16px calc(var(--mob-nav-h) + 72px + var(--mob-safe-bottom)) !important;
+    box-sizing: border-box !important;
+    gap: 16px !important;
+  }
+  #viewHome {
+    width: 100% !important;
+    gap: 16px !important;
+  }
+  .home-header {
+    padding: 0 0 14px !important;
+  }
+  .home-greeting {
+    font-size: 1.6rem !important;
+  }
+  .home-hero {
+    height: 200px !important;
+    margin-bottom: 22px !important;
+    border-radius: 16px !important;
+  }
+  .home-hero-title {
+    font-size: 1.45rem !important;
+    line-height: 1.15 !important;
+  }
+  .home-quick-section {
+    margin-bottom: 22px !important;
+  }
+  .home-quick-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .home-quick-card {
+    height: 56px !important;
+    border-radius: 8px !important;
+  }
+  .home-quick-cover {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .home-quick-name {
+    font-size: 0.78rem !important;
+    padding: 0 10px !important;
+  }
+  .home-section {
+    margin-bottom: 24px !important;
+    gap: 12px !important;
+  }
+  .home-section-title {
+    font-size: 1.2rem !important;
+  }
+  .home-cards-scroll {
+    gap: 12px !important;
+    padding-bottom: 8px !important;
+    margin: 0 -16px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .home-card {
+    width: 152px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+    background: var(--bg-card) !important;
+  }
+  .home-card-cover-wrap {
+    border-radius: 8px !important;
+  }
+  .home-card-title {
+    font-size: 0.84rem !important;
+  }
+  .home-card-sub {
+    font-size: 0.72rem !important;
+  }
+  .home-genres-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .home-genre-card {
+    height: 82px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+  .home-genre-name {
+    font-size: 0.95rem !important;
+  }
+  .home-genre-icon {
+    font-size: 1.6rem !important;
+  }
+  .miniplayer {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(var(--mob-nav-h) + var(--mob-safe-bottom) + 8px) !important;
+  }
+}

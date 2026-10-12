@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wave-v5.0';
+const CACHE_NAME = 'wave-v5.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=5.0',
-  './script.js?v=5.0',
+  './style.css?v=5.1',
+  './script.js?v=5.1',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'
@@ -68,4 +68,5 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
 
