@@ -2094,6 +2094,7 @@ window.onYouTubeIframeAPIReady = function() {
         playsinline: 1,
         rel: 0,
         iv_load_policy: 3,
+        start: 1,
         origin: window.location.origin
       },
       events: {
@@ -2120,12 +2121,56 @@ if (window.YT && window.YT.Player) {
   window.onYouTubeIframeAPIReady();
 }
 
+let isAdSilenced = false;
+
+function checkAndMuteAd() {
+  if (!ytPlayer) return false;
+  try {
+    const dur = (typeof ytPlayer.getDuration === 'function') ? (ytPlayer.getDuration() || 0) : 0;
+    const expected = (currentActiveTrack && currentActiveTrack.duration) ? currentActiveTrack.duration : 0;
+    let isAd = false;
+    // Heurística 1: El video dura menos de 45s cuando la canción dura más de 60s
+    if (dur > 0 && dur < 45 && expected > 60) {
+      isAd = true;
+    }
+    // Heurística 2: El video cargado no coincide con el track solicitado
+    if (typeof ytPlayer.getVideoData === 'function') {
+      const vd = ytPlayer.getVideoData();
+      if (vd && vd.video_id && currentActiveTrack && currentActiveTrack.ytId && vd.video_id !== currentActiveTrack.ytId) {
+        isAd = true;
+      }
+    }
+    if (isAd) {
+      if (!isAdSilenced) {
+        isAdSilenced = true;
+        if (typeof ytPlayer.mute === 'function') ytPlayer.mute();
+        try { ytPlayer.setPlaybackRate(2); } catch(err){}
+      }
+      if (dur > 0 && typeof ytPlayer.seekTo === 'function') {
+        try { ytPlayer.seekTo(dur + 1, true); } catch(err){}
+      }
+      return true;
+    } else {
+      if (isAdSilenced) {
+        isAdSilenced = false;
+        if (typeof ytPlayer.unMute === 'function') ytPlayer.unMute();
+        if (typeof ytPlayer.setVolume === 'function') ytPlayer.setVolume(Math.round(userVolume * 100));
+        try { ytPlayer.setPlaybackRate(1); } catch(err){}
+      }
+      return false;
+    }
+  } catch(e) {
+    return false;
+  }
+}
+
 function onYtStateChange(e) {
   if (e.data === YT.PlayerState.PLAYING) {
     isPlaying = true;
     updatePlayUI();
     updateMiniplayer();
     startYtTimer();
+    checkAndMuteAd();
     if (typeof startSilentBackgroundAudio === 'function') startSilentBackgroundAudio();
   } else if (e.data === YT.PlayerState.PAUSED) {
     isPlaying = false;
@@ -2146,6 +2191,7 @@ function startYtTimer() {
   clearInterval(ytTimeInterval);
   ytTimeInterval = setInterval(() => {
     if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+    if (checkAndMuteAd()) return;
     const cur = ytPlayer.getCurrentTime() || 0;
     const dur = ytPlayer.getDuration() || 0;
     if (dur > 0) {
@@ -2590,7 +2636,7 @@ function loadOnlineTrack(track) {
       if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
         ytPlayer.loadVideoById({
           videoId: track.ytId,
-          startSeconds: 0
+          startSeconds: 1
         });
         if (typeof ytPlayer.unMute === 'function') {
           ytPlayer.unMute();
