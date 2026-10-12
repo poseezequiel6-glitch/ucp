@@ -1,0 +1,326 @@
+{
+  "reggaeton": [
+    {
+      "title": "Yandel 150",
+      "artist": "Yandel, Feid",
+      "ytId": "WHejvUhX6rk",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/1f/d6/ed/1fd6ed67-e547-edcb-4618-427813d5701b/5021732627773.jpg/600x600bb.jpg",
+      "duration": 219
+    },
+    {
+      "title": "Hawai",
+      "artist": "Maluma",
+      "ytId": "pK060iUFWXg",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/6f/4a/ab/6f4aab37-196a-3df8-a584-baf24772ed59/886448614913.jpg/600x600bb.jpg",
+      "duration": 259
+    },
+    {
+      "title": "Con Calma",
+      "artist": "Daddy Yankee, Snow",
+      "ytId": "DiItGE3eAyQ",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/89/4e/ad/894eade7-f1d8-37bf-72f9-88c496eedfdd/19UMGIM00637.rgb.jpg/600x600bb.jpg",
+      "duration": 211
+    },
+    {
+      "title": "MIA",
+      "artist": "Bad Bunny, Drake",
+      "ytId": "OSUxrSe5GbI",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/cf/3a/db/cf3adbe6-8ea1-f60f-60fd-713eefda3962/193483317984.jpg/600x600bb.jpg",
+      "duration": 211
+    },
+    {
+      "title": "Titi Me Pregunto",
+      "artist": "Bad Bunny",
+      "ytId": "Cr8K88UcO0s",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e7/7d/47/e77d4736-b0d4-e2ee-5f81-fe8407f69eb8/1801.jpg/600x600bb.jpg",
+      "duration": 291
+    },
+    {
+      "title": "Me Porto Bonito",
+      "artist": "Bad Bunny, Chencho Corleone",
+      "ytId": "saGYMhApaH8",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/72/bb/ef/72bbefd0-28b6-7a92-5c29-9514858633a4/717340560957_cover.jpg/600x600bb.jpg",
+      "duration": 192
+    },
+    {
+      "title": "Todo De Ti",
+      "artist": "Rauw Alejandro",
+      "ytId": "CFPLIaMpGrY",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/48/1e/c4/481ec4ab-5e42-8f6c-ad8f-086314e47eee/21CRGIM29092.rgb.jpg/600x600bb.jpg",
+      "duration": 212
+    },
+    {
+      "title": "Medallo",
+      "artist": "Blessd, Justin Quiles",
+      "ytId": "hMhR6T7EEfQ",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/1c/32/3f/1c323fef-f77c-d079-71d9-7de38f49c6d9/5021732655486.jpg/600x600bb.jpg",
+      "duration": 241
+    }
+  ],
+  "trap": [
+    {
+      "title": "Goteo",
+      "artist": "Duki",
+      "ytId": "FRthkpJ_NFo",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/46/81/73/46817351-2fef-99e8-34f9-26b3ddcc6b99/194491166793.jpg/600x600bb.jpg",
+      "duration": 185
+    },
+    {
+      "title": "Rara Vez",
+      "artist": "Milo J, Taiu",
+      "ytId": "aBSkvI0CkgU",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/9b/e7/d3/9be7d3f5-b52b-bb88-331b-be62acf321d9/197190794755.jpg/600x600bb.jpg",
+      "duration": 210
+    },
+    {
+      "title": "Quevedo: Bzrp Music Sessions, Vol. 52",
+      "artist": "Bizarrap, Quevedo",
+      "ytId": "A_g3lMcWVy0",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/a0/b5/76/a0b576ad-667d-1140-4694-23e5d598e89e/196925240499.jpg/600x600bb.jpg",
+      "duration": 204
+    },
+    {
+      "title": "LALA",
+      "artist": "Myke Towers",
+      "ytId": "BVdngsy95mY",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/fe/c0/4e/fec04eaf-a0ac-29b9-ab28-c4faaffeedd5/5054197502804.jpg/600x600bb.jpg",
+      "duration": 198
+    },
+    {
+      "title": "DANCE CRIP",
+      "artist": "Trueno",
+      "ytId": "JWRlTezTF2k",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/cd/49/11/cd491176-6fac-b0fc-07a8-810594d58420/197187610976.jpg/600x600bb.jpg",
+      "duration": 175
+    },
+    {
+      "title": "Givenchy",
+      "artist": "Duki",
+      "ytId": "ymvYySd_P2E",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/3a/a2/36/3aa23672-0130-58c1-d1f8-e3472ef408c1/0.jpg/600x600bb.jpg",
+      "duration": 225
+    }
+  ],
+  "pop": [
+    {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "ytId": "4NRXx6U8ABQ",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/61/e7/3f/61e73f94-018d-5f50-50ec-8521952bc72e/20UM1IM11629.rgb.jpg/600x600bb.jpg",
+      "duration": 263
+    },
+    {
+      "title": "Levitating",
+      "artist": "Dua Lipa",
+      "ytId": "TUVcZfQe-Kw",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6c/11/d6/6c11d681-aa3a-d59e-4c2e-f77e181026ab/190295092665.jpg/600x600bb.jpg",
+      "duration": 231
+    },
+    {
+      "title": "As It Was",
+      "artist": "Harry Styles",
+      "ytId": "H5v3kku4y6Q",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/600x600bb.jpg",
+      "duration": 166
+    },
+    {
+      "title": "Flowers",
+      "artist": "Miley Cyrus",
+      "ytId": "G7KNmW9a75Y",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/8c/67/ff/8c67ff91-31c3-3fef-1884-ce3ec89f3af4/196589946874.jpg/600x600bb.jpg",
+      "duration": 202
+    },
+    {
+      "title": "Shape of You",
+      "artist": "Ed Sheeran",
+      "ytId": "JGwWNGJdvx8",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/600x600bb.jpg",
+      "duration": 264
+    },
+    {
+      "title": "Anti-Hero",
+      "artist": "Taylor Swift",
+      "ytId": "b1kbLwvqugk",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/3d/01/f2/3d01f2e5-5a08-835f-3d30-d031720b2b80/22UM1IM07364.rgb.jpg/600x600bb.jpg",
+      "duration": 310
+    }
+  ],
+  "rkt": [
+    {
+      "title": "L-Gante RKT",
+      "artist": "L-Gante, Papu DJ",
+      "ytId": "SacHyFb_j1o",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/e8/95/79/e8957943-4332-709d-b08d-6c3ec2d908da/0.jpg/600x600bb.jpg",
+      "duration": 186
+    },
+    {
+      "title": "Tu Turrito",
+      "artist": "Rei, Callejero Fino",
+      "ytId": "AtalMwsn7fs",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/6a/27/c0/6a27c0b6-3d64-d802-a51c-1f02ea90e052/196626849380.jpg/600x600bb.jpg",
+      "duration": 177
+    },
+    {
+      "title": "M.A (Mejores Amigos)",
+      "artist": "BM",
+      "ytId": "pOZvokjWbXM",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/77/55/8d/77558dc0-d1a5-f6c3-8912-3ec11a8fc196/0.jpg/600x600bb.jpg",
+      "duration": 155
+    },
+    {
+      "title": "Un Finde",
+      "artist": "Ke Personajes, FMK, Big One",
+      "ytId": "d2HmiKVoTNA",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/d9/a3/cc/d9a3cccd-75e5-df27-f6db-f77a4fac9520/197188448271.jpg/600x600bb.jpg",
+      "duration": 169
+    },
+    {
+      "title": "Bar",
+      "artist": "TINI, L-Gante",
+      "ytId": "0f3ZHuC-l0c",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/bf/18/4f/bf184fa3-a7a1-c644-e889-a94e3d918fe0/886449704330.jpg/600x600bb.jpg",
+      "duration": 162
+    }
+  ],
+  "rock": [
+    {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "ytId": "fJ9rUzIMcZQ",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/8b/0a/ea/8b0aea60-6f4a-195b-5958-cdf459c2333b/602527644271.jpg/600x600bb.jpg",
+      "duration": 360
+    },
+    {
+      "title": "Smells Like Teen Spirit",
+      "artist": "Nirvana",
+      "ytId": "hTWKbfoikeg",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/95/fd/b9/95fdb9b2-6d2b-92a6-97f2-51c1a6d77f1a/00602527874609.rgb.jpg/600x600bb.jpg",
+      "duration": 279
+    },
+    {
+      "title": "Do I Wanna Know?",
+      "artist": "Arctic Monkeys",
+      "ytId": "bpOSxM0rNPM",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/600x600bb.jpg",
+      "duration": 266
+    },
+    {
+      "title": "Mr. Brightside",
+      "artist": "The Killers",
+      "ytId": "gGdGFtwCNBE",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/11/64/9c/11649c80-2066-dba8-77a9-df7eecae26c1/17UM1IM06937.rgb.jpg/600x600bb.jpg",
+      "duration": 228
+    },
+    {
+      "title": "Seven Nation Army",
+      "artist": "The White Stripes",
+      "ytId": "0J2QdDbelmY",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/07/25/09/0725098a-09f4-f240-e551-94384a590371/886448799009.jpg/600x600bb.jpg",
+      "duration": 239
+    },
+    {
+      "title": "Yellow",
+      "artist": "Coldplay",
+      "ytId": "yKNxeF4KMsY",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/600x600bb.jpg",
+      "duration": 273
+    }
+  ],
+  "electronica": [
+    {
+      "title": "One More Time",
+      "artist": "Daft Punk",
+      "ytId": "FGBhQbmPwH8",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fd/4a/77/fd4a77db-0ebc-d043-41a2-f32fa1bb0fb4/dj.qrikkdwj.jpg/600x600bb.jpg",
+      "duration": 322
+    },
+    {
+      "title": "Animals",
+      "artist": "Martin Garrix",
+      "ytId": "gCYcHz2k5x0",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6e/1e/f0/6e1ef055-195a-bb73-d5a8-5926058366a5/8712944577525.png/600x600bb.jpg",
+      "duration": 192
+    },
+    {
+      "title": "Lean On",
+      "artist": "Major Lazer, DJ Snake, MO",
+      "ytId": "YqeW9_5kURI",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/b9/80/28/b98028a2-1567-1247-6813-d167ef8c99dd/653738277321_Cover.jpg/600x600bb.jpg",
+      "duration": 179
+    },
+    {
+      "title": "Wake Me Up",
+      "artist": "Avicii",
+      "ytId": "IcrbM1l_BoI",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/18/5b/1e/185b1ef5-5d97-19d8-aebf-8e29e41874ef/13UAAIM59255.rgb.jpg/600x600bb.jpg",
+      "duration": 273
+    },
+    {
+      "title": "Summer",
+      "artist": "Calvin Harris",
+      "ytId": "ebXbLfLACGM",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/da/50/cc/da50cc80-3515-a38d-369b-0d700ffd249d/886444820448.jpg/600x600bb.jpg",
+      "duration": 234
+    }
+  ],
+  "salsa": [
+    {
+      "title": "Vivir Mi Vida",
+      "artist": "Marc Anthony",
+      "ytId": "YXnjy5YlDwk",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/f7/24/ce/f724ce48-4d0d-0cbc-3493-3d935142e5e6/886443947238.jpg/600x600bb.jpg",
+      "duration": 327
+    },
+    {
+      "title": "Despacito",
+      "artist": "Luis Fonsi, Daddy Yankee",
+      "ytId": "kJQP7kiw5Fk",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e2/ef/f0/e2eff0bc-c51d-7de5-9280-6891ddcee71b/18UMGIM85289.rgb.jpg/600x600bb.jpg",
+      "duration": 282
+    },
+    {
+      "title": "Waka Waka",
+      "artist": "Shakira",
+      "ytId": "pRpeEdMmmQ0",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/3e/3a/73/3e3a73da-e19e-b26c-ec19-9da6a5da93fa/mzi.ixhiugev.jpg/600x600bb.jpg",
+      "duration": 211
+    },
+    {
+      "title": "La Bicicleta",
+      "artist": "Carlos Vives, Shakira",
+      "ytId": "-UV0QGLmYys",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8d/58/3d/8d583d74-d03c-b26e-9b4b-65a32f4eb8b0/886446730196.jpg/600x600bb.jpg",
+      "duration": 238
+    },
+    {
+      "title": "Suavemente",
+      "artist": "Elvis Crespo",
+      "ytId": "WPiEbYSF9kE",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/0a/b6/2f/0ab62f9e-c72b-0968-d11e-24d2b38dd5d8/mzi.lomqptbg.jpg/600x600bb.jpg",
+      "duration": 269
+    }
+  ],
+  "chill": [
+    {
+      "title": "Lofi Hip Hop Radio",
+      "artist": "Lofi Girl",
+      "ytId": "jfKfPfyJRdk",
+      "cover": "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&q=80",
+      "duration": 1800
+    },
+    {
+      "title": "Let Her Go",
+      "artist": "Passenger",
+      "ytId": "RBumgq5yVrA",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/8e/3c/6e/8e3c6e94-c774-8b6b-80a5-296bc8bf6cb1/00602537158434.rgb.jpg/600x600bb.jpg",
+      "duration": 253
+    },
+    {
+      "title": "Yellow",
+      "artist": "Coldplay",
+      "ytId": "yKNxeF4KMsY",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/600x600bb.jpg",
+      "duration": 273
+    }
+  ]
+}
