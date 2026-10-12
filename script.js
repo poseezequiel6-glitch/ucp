@@ -320,7 +320,12 @@ function cleanTitle(title) {
     .trim();
 }
 function formatTime(s) { if(isNaN(s)||s<0)return'0:00'; return`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
-function paintSlider(el,pct) { el.style.background=`linear-gradient(to right,rgba(255,255,255,.85) ${pct}%,rgba(255,255,255,.12) ${pct}%)`; }
+function paintSlider(el,pct) {
+  const isProgress = el === progressBar;
+  const filled   = isProgress ? '#a78bfa' : 'rgba(255,255,255,.8)';
+  const unfilled = isProgress ? 'rgba(139,92,246,.2)' : 'rgba(255,255,255,.12)';
+  el.style.background = `linear-gradient(to right,${filled} ${pct}%,${unfilled} ${pct}%)`;
+}
 function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 
