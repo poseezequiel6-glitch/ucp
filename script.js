@@ -2397,7 +2397,7 @@ async function fetchITunes(q) {
 function renderITunesResults(results) {
   itunesResults.innerHTML = '';
   if (!results.length) { checkEmpty(); return; }
-  const visible = results.filter(r => r.previewUrl).slice(0, 5);
+  const visible = results.filter(r => r.previewUrl || r.trackName).slice(0, 10);
   if (!visible.length) { checkEmpty(); return; }
 
   itunesSection.style.display = 'flex';
@@ -2410,24 +2410,36 @@ function renderITunesResults(results) {
     );
     const li = document.createElement('li');
     li.className = 'search-result-item';
-    const cover = r.artworkUrl60 || r.artworkUrl30 || '';
+    const rawCover = r.artworkUrl100 || r.artworkUrl60 || '';
+    const hdCover = rawCover ? rawCover.replace('100x100bb', '600x600bb').replace('60x60', '600x600') : '';
   
-const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="cover" loading="lazy" />` : `<svg viewBox="0 0 38 38" fill="none"><rect width="38" height="38" fill="#222"/></svg>`;
-    const tagHtml = alreadyOwned
-      ? `<span class="tag-local" title="Ya la tenés descargada">✓ LOCAL</span>`
-      : `<span class="tag-full" title="Canción completa">▶ COMPLETA</span>`;
+    const coverHtml = hdCover
+      ? `<img src="${hdCover}" alt="cover" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80';" />`
+      : `<svg viewBox="0 0 38 38" fill="none"><rect width="38" height="38" fill="#222"/></svg>`;
+
+    const trackObj = {
+      title: r.trackName,
+      artist: r.artistName,
+      album: r.collectionName || 'Álbum',
+      cover: hdCover,
+      previewUrl: r.previewUrl,
+      duration: Math.round((r.trackTimeMillis || 0) / 1000)
+    };
+
     li.innerHTML = `
       <div class="search-result-cover">${coverHtml}</div>
       <div class="search-result-info">
         <div class="search-result-title">${escapeHtml(r.trackName)}</div>
         <div class="search-result-artist">${escapeHtml(r.artistName)} · ${escapeHtml(r.collectionName || '')}</div>
       </div>
-      <div class="search-result-tags">
-        ${tagHtml}
-        ${!alreadyOwned ? `<button class="search-download-btn" title="Descargar MP3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>` : ''}
+      <div class="search-result-tags" style="display:flex;align-items:center;gap:6px;">
+        <button class="search-action-btn btn-search-queue" title="Añadir a la cola">+ Fila</button>
+        <button class="search-action-btn btn-search-pl" title="Añadir a playlist">+ Playlist</button>
+        ${!alreadyOwned ? `<button class="search-download-btn" title="Descargar MP3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>` : ''}
       </div>`;
+
     li.addEventListener('click', e => {
-      if (e.target.closest('.search-download-btn')) return;
+      if (e.target.closest('.search-action-btn') || e.target.closest('.search-download-btn')) return;
       if (alreadyOwned) {
         const track = library.find(t => t.title.toLowerCase().trim() === r.trackName.toLowerCase().trim() && t.artist.toLowerCase().trim() === r.artistName.toLowerCase().trim());
         if (track) { stopPreview(); hideDropdown(); searchInput.value = ''; applyFilterAndSort(); const idx = filteredLib.findIndex(t => t.id === track.id); if (idx >= 0) { playContext = 'library'; loadTrack(idx, true); } }
@@ -2435,15 +2447,19 @@ const coverHtml = cover ? `<img src="${cover.replace('60x60', '80x80')}" alt="co
       }
       hideDropdown();
       searchInput.value = '';
-      playAnyTrack({
-        title: r.trackName,
-        artist: r.artistName,
-        album: r.collectionName || '',
-        cover: cover.replace('60x60','300x300').replace('80x80','300x300'),
-        previewUrl: r.previewUrl,
-        duration: Math.round((r.trackTimeMillis || 0) / 1000)
-      });
+      playAnyTrack(trackObj);
     });
+
+    li.querySelector('.btn-search-queue')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      addTrackToQueue(trackObj);
+    });
+
+    li.querySelector('.btn-search-pl')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddToPlaylistModal(trackObj);
+    });
+
     if (!alreadyOwned) {
       li.querySelector('.search-download-btn')?.addEventListener('click', e => { e.stopPropagation(); startDownload(`${r.artistName} - ${r.trackName}`, li); });
     }
@@ -2582,17 +2598,29 @@ function renderYouTubeResults(items) {
   checkEmpty();
 }
 
+const ytVideoCache = new Map();
+
 async function resolveYouTubeVideoId(title, artist) {
-  const mirrors = ['https://invidious.f5.si', 'https://invidious.flokinet.to'];
-  const q = `${artist} ${title}`;
+  const cacheKey = `${(artist||'').toLowerCase().trim()} - ${(title||'').toLowerCase().trim()}`;
+  if (ytVideoCache.has(cacheKey)) {
+    return ytVideoCache.get(cacheKey);
+  }
+  const cleanTitle = (title || '').replace(/\(.*?feat.*?\)/gi, '').replace(/\[.*?\]/g, '').trim();
+  const q = `${artist} ${cleanTitle}`;
+  const mirrors = [
+    'https://invidious.f5.si',
+    'https://invidious.nerdvpn.de',
+    'https://yewtu.be'
+  ];
   for (const mirror of mirrors) {
     try {
       const res = await fetch(`${mirror}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, {
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(3500)
       });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0 && data[0].videoId) {
+          ytVideoCache.set(cacheKey, data[0].videoId);
           return data[0].videoId;
         }
       }
@@ -3947,7 +3975,7 @@ function startUrlDownload() {
       yt.slice(0, 10).forEach(item => results.push({ type: 'yt', item }));
     }
     if (it.length) {
-      results.push({ type: 'header', label: 'ITUNES' });
+      results.push({ type: 'header', label: '⭐ CANCIONES & ÁLBUMES (HD)' });
       it.slice(0, 5).forEach(r => results.push({ type: 'itunes', r }));
     }
 
@@ -4041,12 +4069,12 @@ function startUrlDownload() {
       } else if (entry.type === 'itunes') {
         const r = entry.r;
         if (!r.previewUrl) return;
-        const cover = (r.artworkUrl60 || '').replace('60x60','80x80');
+        const cover = (r.artworkUrl100 || r.artworkUrl60 || '').replace('100x100bb','600x600bb').replace('60x60','600x600');
         const itunesTrack = {
           title: r.trackName,
           artist: r.artistName,
           album: r.collectionName || '',
-          cover: (r.artworkUrl60 || '').replace('60x60','300x300'),
+          cover: (r.artworkUrl100 || r.artworkUrl60 || '').replace('100x100bb','600x600bb').replace('60x60','600x600'),
           previewUrl: r.previewUrl,
           duration: Math.round((r.trackTimeMillis || 0) / 1000)
         };
