@@ -1151,7 +1151,7 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.3); box-sha
 .mob-drawer-overlay,
 .mob-search-overlay { display: none; }
 
-@media (max-width: 680px) {
+@media (max-width: 850px) {
 
   /* ── Variables ── */
   :root {
@@ -2467,31 +2467,41 @@ body[data-theme="cover"] {
   transition: width 0.5s linear;
 }
 
-/* Miniplayer responsive */
-@media (max-width: 700px) {
+/* Miniplayer responsive (Mobile & Tablet) */
+@media (max-width: 850px) {
   .miniplayer {
-    left: 0;
-    padding: 6px 12px;
-    gap: 10px;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(var(--mob-nav-h) + var(--mob-safe-bottom) + 8px) !important;
+    z-index: 165 !important;
+    border-radius: 10px !important;
+    background: rgba(24, 24, 24, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    padding: 8px 12px !important;
+    gap: 10px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7) !important;
   }
   .miniplayer-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+  }
+  .miniplayer-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .miniplayer-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .miniplayer-play {
     width: 36px;
     height: 36px;
   }
-  .miniplayer-btn {
-    width: 28px;
-    height: 28px;
-  }
-  .miniplayer-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-  .miniplayer-play {
-    width: 34px;
-    height: 34px;
-  }
   .miniplayer-play svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
 }

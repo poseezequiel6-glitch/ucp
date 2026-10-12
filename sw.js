@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wave-v4.3';
+const CACHE_NAME = 'wave-v4.4';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=4.3',
-  './script.js?v=4.3',
+  './style.css?v=4.4',
+  './script.js?v=4.4',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'
@@ -12,9 +12,9 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('Pre-cache error (sw.js):', err);
-      });
+      return Promise.allSettled(
+        STATIC_ASSETS.map((asset) => cache.add(asset))
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -31,37 +31,40 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  
-  // No interceptar peticiones no HTTP/GET o de YouTube iframe
   if (req.method !== 'GET' || !req.url.startsWith('http')) return;
-  if (req.url.includes('youtube.com') || req.url.includes('ytimg.com') || req.url.includes('googlevideo.com')) {
+
+  // No interceptar peticiones de YouTube, audio preview, ni CDNs externos
+  if (
+    req.url.includes('youtube.com') ||
+    req.url.includes('ytimg.com') ||
+    req.url.includes('googlevideo.com') ||
+    req.url.includes('invidious') ||
+    req.url.includes('apple.com') ||
+    req.url.includes('cdnjs') ||
+    req.url.includes('fonts.googleapis') ||
+    req.url.includes('fonts.gstatic')
+  ) {
     return;
   }
 
+  // Network-First para evitar que se rompa el CSS/JS en GitHub Pages
   event.respondWith(
-    caches.match(req).then((cachedResp) => {
-      if (cachedResp) {
-        // En segundo plano revalidar recursos estáticos
-        fetch(req).then((netResp) => {
-          if (netResp && netResp.status === 200 && netResp.type === 'basic') {
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, netResp));
-          }
-        }).catch(() => {});
-        return cachedResp;
-      }
-
-      return fetch(req).then((netResp) => {
-        if (netResp && netResp.status === 200 && (req.url.endsWith('.css') || req.url.endsWith('.js') || req.url.endsWith('.svg') || req.url.endsWith('.png'))) {
-          const respClone = netResp.clone();
+    fetch(req)
+      .then((networkResp) => {
+        if (networkResp && networkResp.status === 200) {
+          const respClone = networkResp.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, respClone));
         }
-        return netResp;
-      }).catch(() => {
-        // Si estamos totalmente offline y piden navegación, devolver index.html
+        return networkResp;
+      })
+      .catch(async () => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
         if (req.mode === 'navigate') {
-          return caches.match('./index.html');
+          const indexCached = await caches.match('./index.html');
+          if (indexCached) return indexCached;
         }
-      });
-    })
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
+      })
   );
 });
